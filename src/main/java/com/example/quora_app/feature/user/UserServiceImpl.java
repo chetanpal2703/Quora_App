@@ -1,5 +1,6 @@
 package com.example.quora_app.feature.user;
 
+import com.example.quora_app.core.exception.ResourceAlreadyExistsException;
 import com.example.quora_app.feature.user.dto.UserRegistrationRequest;
 import com.example.quora_app.feature.user.dto.UserResponse;
 import lombok.RequiredArgsConstructor;
@@ -15,11 +16,12 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserResponse register(UserRegistrationRequest request) {
-        if(userRepository.existsByUsername(request.getName())){
-            throw new RuntimeException("Username already exists");
+        if (userRepository.existsByUsername(request.getUsername())) {
+            throw new ResourceAlreadyExistsException("Username already exists");
         }
+
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new RuntimeException("Email already exists");
+            throw new ResourceAlreadyExistsException("Email already exists");
         }
         String encodedPassword = passwordEncoder.encode(request.getPassword());
 
