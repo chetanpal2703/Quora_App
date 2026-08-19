@@ -78,6 +78,28 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-security</artifactId>
 		</dependency>
+		<!-- Spring Boot integration with Testcontainers / @ServiceConnection -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-testcontainers</artifactId>
+			<scope>test</scope>
+		</dependency>
+
+		<!-- Testcontainers JUnit 5 integration -->
+		<dependency>
+			<groupId>org.testcontainers</groupId>
+			<artifactId>junit-jupiter</artifactId>
+			<version>1.20.1</version> <!-- ADD THIS LINE -->
+			<scope>test</scope>
+		</dependency>
+
+		<!-- Testcontainers MySQL module -->
+		<dependency>
+			<groupId>org.testcontainers</groupId>
+			<artifactId>mysql</artifactId>
+			<version>1.20.1</version> <!-- ADD THIS LINE -->
+			<scope>test</scope>
+		</dependency>
 	</dependencies>
 
 	<build>
