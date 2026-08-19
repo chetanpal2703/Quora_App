@@ -1,6 +1,7 @@
 package com.example.quora_app.feature.user;
 
 import com.example.quora_app.core.common.dto.ApiResponse;
+import com.example.quora_app.core.common.dto.PageResponse;
 import com.example.quora_app.feature.user.dto.UserRegistrationRequest;
 import com.example.quora_app.feature.user.dto.UserResponse;
 import com.example.quora_app.feature.user.dto.UserUpdateRequest;
@@ -32,9 +33,9 @@ public class UserController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    @GetMapping
-    public ResponseEntity<ApiResponse<List<UserResponse>>> getAllUsers() {
-        List<UserResponse> userResponses=userService.getAllUsers();
+    @GetMapping("/getAllUser")
+    public ResponseEntity<ApiResponse<List<UserResponse>>> getAllUser() {
+        List<UserResponse> userResponses=userService.getAllUsersWithoutParams();
         ApiResponse<List<UserResponse>> response= ApiResponse.<List<UserResponse>>builder()
                 .success(true)
                 .message("User fetched successfully")
@@ -66,13 +67,25 @@ public class UserController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<ApiResponse<UserResponse>> deleteUser(@PathVariable UUID id) {
-        UserResponse updatedUser=userService.deleteUser(id);
-        ApiResponse<UserResponse> response=ApiResponse.<UserResponse>builder()
-                .success(true)
-                .message("user deleted Successfully")
-                .data(updatedUser)
-                .build();
+    public ResponseEntity<Void> deleteUser(@PathVariable UUID id) {
+        userService.deleteUser(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping
+    public ResponseEntity<ApiResponse<PageResponse<UserResponse>>> getAllUsers(@RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDir,
+            @RequestParam(required = false) String search
+    ) {
+        PageResponse<UserResponse> users = userService.getAllUsers(page, size, sortBy, sortDir, search);
+
+        ApiResponse<PageResponse<UserResponse>> response = ApiResponse.<PageResponse<UserResponse>>builder()
+                        .success(true)
+                        .message("Users fetched successfully")
+                        .data(users)
+                        .build();
         return ResponseEntity.ok(response);
     }
 }
