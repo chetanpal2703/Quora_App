@@ -1,8 +1,12 @@
 package com.example.quora_app.feature.user;
 
 import com.example.quora_app.core.common.entity.BaseEntity;
+import com.example.quora_app.feature.question.Question;
 import jakarta.persistence.*;
 import lombok.*;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "users")
@@ -24,4 +28,7 @@ public class User extends BaseEntity {
 
     @Column(nullable = false)
     private String password;
+
+    @OneToMany(mappedBy = "user")
+    private List<Question> questions=new ArrayList<>();
 }
