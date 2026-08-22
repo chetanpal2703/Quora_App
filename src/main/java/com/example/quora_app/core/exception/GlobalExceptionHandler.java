@@ -104,18 +104,18 @@ public class GlobalExceptionHandler {
                         .build());
     }
 
-    @ExceptionHandler(HttpMessageNotReadableException.class)
-    public ResponseEntity<ApiResponse<Void>> handleInvalidRequestBody(
-            HttpMessageNotReadableException ex) {
-
-        return ResponseEntity
-                .status(HttpStatus.BAD_REQUEST)
-                .body(ApiResponse.<Void>builder()
-                        .success(false)
-                        .message("Invalid request body")
-                        .data(null)
-                        .build());
-    }
+//    @ExceptionHandler(HttpMessageNotReadableException.class)
+//    public ResponseEntity<ApiResponse<Void>> handleInvalidRequestBody(
+//            HttpMessageNotReadableException ex) {
+//
+//        return ResponseEntity
+//                .status(HttpStatus.BAD_REQUEST)
+//                .body(ApiResponse.<Void>builder()
+//                        .success(false)
+//                        .message("Invalid request body")
+//                        .data(null)
+//                        .build());
+//    }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> handleGenericException(
@@ -154,6 +154,22 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.<Void>builder()
                         .success(false)
                         .message(ex.getMessage())
+                        .data(null)
+                        .build());
+    }
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ApiResponse<Void>> handleInvalidRequestBody(
+            HttpMessageNotReadableException ex) {
+
+        // Extract the exact parsing error from Jackson
+        String specificError = ex.getMostSpecificCause().getMessage();
+
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.<Void>builder()
+                        .success(false)
+                        // Inject the specific error into the response message
+                        .message("Invalid request format: " + specificError)
                         .data(null)
                         .build());
     }

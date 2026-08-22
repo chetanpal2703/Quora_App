@@ -3,6 +3,7 @@ package com.example.quora_app.feature.user;
 import com.example.quora_app.core.exception.ResourceAlreadyExistsException;
 import com.example.quora_app.feature.user.dto.UserRegistrationRequest;
 import com.example.quora_app.feature.user.dto.UserResponse;
+import com.example.quora_app.feature.user.mapper.UserMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -28,6 +29,9 @@ class UserServiceTest {
     @Mock
     private PasswordEncoder passwordEncoder;
 
+    @Mock
+    private UserMapper userMapper;
+
     @InjectMocks
     private UserServiceImpl userService;
 
@@ -45,8 +49,7 @@ class UserServiceTest {
 
     @Test
     void shouldRegisterUserSuccessfully() {
-
-        // Arrange
+        // 1. Arrange - Setup Repository and Encoder
         when(userRepository.existsByUsername(validRequest.getUsername()))
                 .thenReturn(false);
 
@@ -62,11 +65,21 @@ class UserServiceTest {
                 .email(validRequest.getEmail())
                 .password("hashed_password")
                 .build();
-
         savedUser.setId(UUID.randomUUID());
 
-        when(userRepository.save(any(User.class)))
-                .thenReturn(savedUser);
+        when(userRepository.save(any())).thenReturn(savedUser);
+
+        // 2. Arrange - Setup the expected UserResponse
+        UserResponse expectedResponse = UserResponse.builder()
+                .id(savedUser.getId())
+                .name(savedUser.getName())
+                .username(savedUser.getUsername())
+                .email(savedUser.getEmail())
+                .build();
+
+        // 3. Arrange - Mock the mapper behavior
+        when(userMapper.toResponse(any()))
+                .thenReturn(expectedResponse);
 
         // Act
         UserResponse response = userService.register(validRequest);
@@ -81,34 +94,26 @@ class UserServiceTest {
         // Verify repository checks
         verify(userRepository).existsByUsername(validRequest.getUsername());
         verify(userRepository).existsByEmail(validRequest.getEmail());
-
-        // Verify password was encoded
         verify(passwordEncoder).encode(validRequest.getPassword());
+        verify(userMapper).toResponse(any());
 
         // Capture the actual User passed to save()
-        ArgumentCaptor<User> userCaptor =
-                ArgumentCaptor.forClass(User.class);
-
+        ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
         verify(userRepository).save(userCaptor.capture());
-
         User userToSave = userCaptor.getValue();
 
         // Verify correct data was mapped to entity
         assertEquals(validRequest.getName(), userToSave.getName());
         assertEquals(validRequest.getUsername(), userToSave.getUsername());
         assertEquals(validRequest.getEmail(), userToSave.getEmail());
-
-        // Important: raw password must NOT be stored
         assertEquals("hashed_password", userToSave.getPassword());
         assertNotEquals(validRequest.getPassword(), userToSave.getPassword());
 
-        // Make sure save happened only once
-        verify(userRepository, times(1)).save(any(User.class));
+        verify(userRepository, times(1)).save(any());
     }
 
     @Test
     void shouldThrowExceptionWhenUsernameAlreadyExists() {
-
         // Arrange
         when(userRepository.existsByUsername(validRequest.getUsername()))
                 .thenReturn(true);
@@ -122,20 +127,14 @@ class UserServiceTest {
 
         assertTrue(exception.getMessage().contains("Username"));
 
-        // Since username already exists, these should never happen
-        verify(userRepository, never())
-                .existsByEmail(anyString());
-
-        verify(passwordEncoder, never())
-                .encode(anyString());
-
-        verify(userRepository, never())
-                .save(any(User.class));
+        verify(userRepository, never()).existsByEmail(anyString());
+        verify(passwordEncoder, never()).encode(anyString());
+        verify(userRepository, never()).save(any());
+        verify(userMapper, never()).toResponse(any());
     }
 
     @Test
     void shouldThrowExceptionWhenEmailAlreadyExists() {
-
         // Arrange
         when(userRepository.existsByUsername(validRequest.getUsername()))
                 .thenReturn(false);
@@ -152,12 +151,8 @@ class UserServiceTest {
 
         assertTrue(exception.getMessage().contains("Email"));
 
-        // Password should not be encoded
-        verify(passwordEncoder, never())
-                .encode(anyString());
-
-        // User should not be saved
-        verify(userRepository, never())
-                .save(any(User.class));
+        verify(passwordEncoder, never()).encode(anyString());
+        verify(userRepository, never()).save(any());
+        verify(userMapper, never()).toResponse(any());
     }
 }
