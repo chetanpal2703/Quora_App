@@ -9,6 +9,8 @@ import com.example.quora_app.feature.user.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.UUID;
+
 @Service
 @RequiredArgsConstructor
 public class QuestionServiceImpl implements QuestionService {
@@ -26,5 +28,11 @@ public class QuestionServiceImpl implements QuestionService {
                 .build();
         Question savedQuestion= questionRepository.save(question);
         return questionMapper.toResponse(savedQuestion);
+    }
+
+    @Override
+    public QuestionResponse getQuestionById(UUID id) {
+        Question question= questionRepository.findById(id).orElseThrow(()->new ResourceNotFoundException("Question not found with id: "+id));
+        return questionMapper.toResponse(question);
     }
 }
