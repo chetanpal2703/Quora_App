@@ -1,6 +1,7 @@
 package com.example.quora_app.feature.question;
 
 import com.example.quora_app.core.common.dto.ApiResponse;
+import com.example.quora_app.core.common.dto.PageResponse;
 import com.example.quora_app.feature.question.dto.QuestionCreateRequest;
 import com.example.quora_app.feature.question.dto.QuestionResponse;
 import jakarta.validation.Valid;
@@ -39,5 +40,25 @@ public class QuestionController {
                 .message("Question found with id: "+id)
                 .build();
        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping
+    public ResponseEntity<ApiResponse<PageResponse<QuestionResponse>>> getAllQuestions(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDir,
+            @RequestParam(required = false) String search
+    ) {
+        PageResponse<QuestionResponse> questions = questionService.getAllQuestions(page, size, sortBy, sortDir,search);
+
+        ApiResponse<PageResponse<QuestionResponse>> response =
+                ApiResponse.<PageResponse<QuestionResponse>>builder()
+                        .success(true)
+                        .message("Questions fetched successfully")
+                        .data(questions)
+                        .build();
+
+        return ResponseEntity.ok(response);
     }
 }
