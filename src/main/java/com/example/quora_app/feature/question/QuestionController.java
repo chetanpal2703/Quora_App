@@ -4,6 +4,7 @@ import com.example.quora_app.core.common.dto.ApiResponse;
 import com.example.quora_app.core.common.dto.PageResponse;
 import com.example.quora_app.feature.question.dto.QuestionCreateRequest;
 import com.example.quora_app.feature.question.dto.QuestionResponse;
+import com.example.quora_app.feature.question.dto.QuestionUpdateRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -60,5 +61,22 @@ public class QuestionController {
                         .build();
 
         return ResponseEntity.ok(response);
+    }
+
+    @PatchMapping("/{id}")
+    public ResponseEntity<ApiResponse<QuestionResponse>> updateQuestion(@PathVariable UUID id,@Valid @RequestBody QuestionUpdateRequest request){
+        QuestionResponse questionResponse=questionService.updateQuestion(id, request);
+        ApiResponse<QuestionResponse> response=ApiResponse.<QuestionResponse>builder()
+                .success(true)
+                .message("Question updated Successfully")
+                .data(questionResponse)
+                .build();
+        return ResponseEntity.ok(response);
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteQuestion(@PathVariable UUID id) {
+        questionService.deleteQuestion(id);
+        return ResponseEntity.noContent().build();
     }
 }

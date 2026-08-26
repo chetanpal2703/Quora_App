@@ -6,6 +6,7 @@ import com.example.quora_app.core.exception.BadRequestException;
 import com.example.quora_app.core.exception.ResourceNotFoundException;
 import com.example.quora_app.feature.question.dto.QuestionCreateRequest;
 import com.example.quora_app.feature.question.dto.QuestionResponse;
+import com.example.quora_app.feature.question.dto.QuestionUpdateRequest;
 import com.example.quora_app.feature.question.mapper.QuestionMapper;
 import com.example.quora_app.feature.user.User;
 import com.example.quora_app.feature.user.UserRepository;
@@ -108,6 +109,25 @@ public class QuestionServiceImpl implements QuestionService {
                 questionPage,
                 questionMapper::toResponse
         );
+    }
+
+    @Override
+    public QuestionResponse updateQuestion(UUID id, QuestionUpdateRequest request) {
+        Question question =questionRepository.findById(id).orElseThrow(()->new ResourceNotFoundException("Question not found with id: "+id));
+        if (request.getTitle() != null && !request.getTitle().equals(question.getTitle())) {
+            question.setTitle(request.getTitle());
+        }
+        if (request.getContent() != null && !request.getContent().equals(question.getContent())) {
+            question.setContent(request.getContent());
+        }
+        Question savedQuestion = questionRepository.save(question);
+        return questionMapper.toResponse(savedQuestion);
+    }
+
+    @Override
+    public void deleteQuestion(UUID id) {
+        Question question = questionRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Question not found with id: " + id));
+        questionRepository.delete(question);
     }
 
 
