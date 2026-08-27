@@ -23,7 +23,9 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/users",
                                 "/api/v1/users/**",
                                 "/api/v1/questions",
-                                "/api/v1/questions/**"
+                                "/api/v1/questions/**",
+                                "/api/v1/answers",
+                                "/api/v1/answers/**"
                         ).permitAll()
                         .anyRequest().authenticated()
                 );

@@ -1,6 +1,7 @@
 package com.example.quora_app.feature.user;
 
 import com.example.quora_app.core.common.entity.BaseEntity;
+import com.example.quora_app.feature.answer.Answer;
 import com.example.quora_app.feature.question.Question;
 import jakarta.persistence.*;
 import lombok.*;
@@ -31,4 +32,8 @@ public class User extends BaseEntity {
 
     @OneToMany(mappedBy = "user")
     private List<Question> questions=new ArrayList<>();
+
+    @OneToMany(mappedBy = "user")
+    private List<Answer> answers=new ArrayList<>();
+
 }

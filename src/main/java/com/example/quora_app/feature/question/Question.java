@@ -1,11 +1,16 @@
 package com.example.quora_app.feature.question;
 
 import com.example.quora_app.core.common.entity.BaseEntity;
+import com.example.quora_app.feature.answer.Answer;
 import com.example.quora_app.feature.user.User;
 import jakarta.persistence.*;
 import lombok.*;
 
-@Entity(name = "questions")
+import java.util.ArrayList;
+import java.util.List;
+
+@Entity
+@Table(name = "questions")
 @Getter
 @Setter
 @Builder
@@ -21,4 +26,8 @@ public class Question extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY,optional = false)
     @JoinColumn(name = "user_id",nullable = false)
     private User user;
+
+    @OneToMany(mappedBy = "question")
+    private List<Answer> answers=new ArrayList<>();
+
 }
