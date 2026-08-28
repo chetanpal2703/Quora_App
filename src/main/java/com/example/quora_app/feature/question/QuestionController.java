@@ -2,6 +2,8 @@ package com.example.quora_app.feature.question;
 
 import com.example.quora_app.core.common.dto.ApiResponse;
 import com.example.quora_app.core.common.dto.PageResponse;
+import com.example.quora_app.feature.answer.AnswerService;
+import com.example.quora_app.feature.answer.dto.AnswerResponse;
 import com.example.quora_app.feature.question.dto.QuestionCreateRequest;
 import com.example.quora_app.feature.question.dto.QuestionResponse;
 import com.example.quora_app.feature.question.dto.QuestionUpdateRequest;
@@ -20,6 +22,7 @@ import java.util.UUID;
 @Validated
 public class QuestionController {
     private final QuestionService questionService;
+    private final AnswerService answerService;
 
     @PostMapping
     public ResponseEntity<ApiResponse<QuestionResponse>> createQuestion(@RequestBody QuestionCreateRequest request){
@@ -78,5 +81,24 @@ public class QuestionController {
     public ResponseEntity<Void> deleteQuestion(@PathVariable UUID id) {
         questionService.deleteQuestion(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/{questionId}/answer")
+    public ResponseEntity<ApiResponse<PageResponse<AnswerResponse>>> getAnswersByQuestion(
+            @PathVariable UUID questionId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "asc") String sortDir
+    ) {
+        PageResponse<AnswerResponse> answers = answerService.getAnswersByQuestion(questionId, page, size, sortBy, sortDir);
+
+        ApiResponse<PageResponse<AnswerResponse>> response = ApiResponse.<PageResponse<AnswerResponse>>builder()
+                .success(true)
+                .message("Answers fetched successfully")
+                .data(answers)
+                .build();
+
+        return ResponseEntity.ok(response);
     }
 }

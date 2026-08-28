@@ -1,5 +1,8 @@
 package com.example.quora_app.feature.answer;
 
+import com.example.quora_app.core.common.dto.PageResponse;
+import com.example.quora_app.core.common.mapper.PageMapper;
+import com.example.quora_app.core.exception.BadRequestException;
 import com.example.quora_app.core.exception.ResourceNotFoundException;
 import com.example.quora_app.feature.answer.dto.AnswerCreateRequest;
 import com.example.quora_app.feature.answer.dto.AnswerResponse;
@@ -9,7 +12,14 @@ import com.example.quora_app.feature.question.QuestionRepository;
 import com.example.quora_app.feature.user.User;
 import com.example.quora_app.feature.user.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+
+import java.util.Set;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -18,6 +28,7 @@ public class AnswerServiceImpl implements AnswerService {
     private final UserRepository userRepository;
     private final QuestionRepository questionRepository;
     private final AnswerMapper answerMapper;
+    private final PageMapper pageMapper;
 
     @Override
     public AnswerResponse createAnswer(AnswerCreateRequest request) {
@@ -33,5 +44,42 @@ public class AnswerServiceImpl implements AnswerService {
 
         Answer savedAnswer = answerRepository.save(answer);
         return answerMapper.toResponse(savedAnswer);
+    }
+
+    @Override
+    public PageResponse<AnswerResponse> getAnswersByQuestion(UUID questionId, int page, int size, String sortBy, String sortDir) {
+        if (page < 0) {
+            throw new BadRequestException("Page cannot be negative");
+        }
+
+        if (size <= 0) {
+            throw new BadRequestException("Size must be greater than 0");
+        }
+
+        if (size > 100) {
+            throw new BadRequestException("Size cannot be greater than 100");
+        }
+
+        Set<String> allowedSortFields = Set.of("id", "createdAt", "updatedAt");
+
+        if (!allowedSortFields.contains(sortBy)) {
+            throw new BadRequestException("Invalid sort field: " + sortBy);
+        }
+
+        // First verify that the question actually exists.
+        if (!questionRepository.existsById(questionId)) {
+            throw new ResourceNotFoundException("Question not found with id: " + questionId);
+        }
+
+        Sort.Direction direction = "desc".equalsIgnoreCase(sortDir) ? Sort.Direction.DESC : Sort.Direction.ASC;
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+
+        Page<Answer> answerPage = answerRepository.findByQuestionId(questionId, pageable);
+
+        return pageMapper.toPageResponse(
+                answerPage,
+                answerMapper::toResponse
+        );
     }
 }
