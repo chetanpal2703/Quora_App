@@ -1,7 +1,6 @@
 package com.example.quora_app.feature.answer;
 
 import com.example.quora_app.core.common.dto.ApiResponse;
-import com.example.quora_app.core.common.dto.PageResponse;
 import com.example.quora_app.feature.answer.dto.AnswerCreateRequest;
 import com.example.quora_app.feature.answer.dto.AnswerResponse;
 import jakarta.validation.Valid;
@@ -30,6 +29,17 @@ public class AnswerController {
                         .build();
 
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<ApiResponse<AnswerResponse>> getAnswerById(@PathVariable UUID id) {
+        AnswerResponse answerResponse = answerService.getAnswerById(id);
+        ApiResponse<AnswerResponse> response=ApiResponse.<AnswerResponse>builder()
+                .success(true)
+                .message("Answer fetched Successfully")
+                .data(answerResponse)
+                .build();
+        return ResponseEntity.ok(response);
     }
 
 }

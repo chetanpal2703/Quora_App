@@ -9,4 +9,5 @@ import java.util.UUID;
 public interface AnswerService {
     AnswerResponse createAnswer(AnswerCreateRequest request);
     PageResponse<AnswerResponse> getAnswersByQuestion(UUID questionId, int page, int size, String sortBy, String sortDir);
+    AnswerResponse getAnswerById(UUID id);
 }

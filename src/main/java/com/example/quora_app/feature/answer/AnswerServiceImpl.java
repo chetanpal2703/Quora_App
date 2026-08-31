@@ -82,4 +82,10 @@ public class AnswerServiceImpl implements AnswerService {
                 answerMapper::toResponse
         );
     }
+
+    @Override
+    public AnswerResponse getAnswerById(UUID id) {
+        Answer answer =answerRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Answer not found with id: " + id));
+        return answerMapper.toResponse(answer);
+    }
 }
