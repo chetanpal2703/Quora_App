@@ -3,6 +3,7 @@ package com.example.quora_app.feature.answer;
 import com.example.quora_app.core.common.dto.ApiResponse;
 import com.example.quora_app.feature.answer.dto.AnswerCreateRequest;
 import com.example.quora_app.feature.answer.dto.AnswerResponse;
+import com.example.quora_app.feature.answer.dto.AnswerUpdateRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -40,6 +41,26 @@ public class AnswerController {
                 .data(answerResponse)
                 .build();
         return ResponseEntity.ok(response);
+    }
+
+    @PatchMapping("/{answerId}")
+    public ResponseEntity<ApiResponse<AnswerResponse>> updateAnswer(@PathVariable UUID answerId, @Valid @RequestBody AnswerUpdateRequest request) {
+        AnswerResponse updatedAnswer = answerService.updateAnswer(answerId, request);
+
+        ApiResponse<AnswerResponse> response =
+                ApiResponse.<AnswerResponse>builder()
+                        .success(true)
+                        .message("Answer updated successfully")
+                        .data(updatedAnswer)
+                        .build();
+
+        return ResponseEntity.ok(response);
+    }
+
+    @DeleteMapping("/{answerId}")
+    public ResponseEntity<Void> deleteAnswer(@PathVariable UUID answerId) {
+        answerService.deleteAnswer(answerId);
+        return ResponseEntity.noContent().build();
     }
 
 }

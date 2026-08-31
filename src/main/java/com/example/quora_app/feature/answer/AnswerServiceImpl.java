@@ -6,6 +6,7 @@ import com.example.quora_app.core.exception.BadRequestException;
 import com.example.quora_app.core.exception.ResourceNotFoundException;
 import com.example.quora_app.feature.answer.dto.AnswerCreateRequest;
 import com.example.quora_app.feature.answer.dto.AnswerResponse;
+import com.example.quora_app.feature.answer.dto.AnswerUpdateRequest;
 import com.example.quora_app.feature.answer.mapper.AnswerMapper;
 import com.example.quora_app.feature.question.Question;
 import com.example.quora_app.feature.question.QuestionRepository;
@@ -87,5 +88,22 @@ public class AnswerServiceImpl implements AnswerService {
     public AnswerResponse getAnswerById(UUID id) {
         Answer answer =answerRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Answer not found with id: " + id));
         return answerMapper.toResponse(answer);
+    }
+
+    @Override
+    public AnswerResponse updateAnswer(UUID id, AnswerUpdateRequest request) {
+        Answer answer=answerRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Answer not found with id: " + id));
+        if (answer.getContent() != null && answer.getContent().equals(request.getContent())) {
+            return answerMapper.toResponse(answer);
+        }
+        answer.setContent(request.getContent());
+        answer = answerRepository.save(answer);
+        return answerMapper.toResponse(answer);
+    }
+
+    @Override
+    public void deleteAnswer(UUID id) {
+        Answer answer = answerRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Answer not found with id: " + id));
+        answerRepository.delete(answer);
     }
 }
