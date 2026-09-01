@@ -3,6 +3,7 @@ package com.example.quora_app.feature.question;
 import com.example.quora_app.core.common.dto.PageResponse;
 import com.example.quora_app.core.common.mapper.PageMapper;
 import com.example.quora_app.core.exception.BadRequestException;
+import com.example.quora_app.core.exception.ForbiddenException;
 import com.example.quora_app.core.exception.ResourceNotFoundException;
 import com.example.quora_app.core.security.CurrentUserService;
 import com.example.quora_app.feature.question.dto.QuestionCreateRequest;
@@ -116,6 +117,11 @@ public class QuestionServiceImpl implements QuestionService {
     @Override
     public QuestionResponse updateQuestion(UUID id, QuestionUpdateRequest request) {
         Question question =questionRepository.findById(id).orElseThrow(()->new ResourceNotFoundException("Question not found with id: "+id));
+//        UUID currentUserId = currentUserService.getCurrentUserId();
+//        if (!question.getUser().getId().equals(currentUserId)) {
+//            throw new ForbiddenException("You are not allowed to update this question");
+//        }
+        currentUserService.verifyOwner(question.getUser().getId(), "You are not allowed to update this question");
         if (request.getTitle() != null && !request.getTitle().equals(question.getTitle())) {
             question.setTitle(request.getTitle());
         }
@@ -129,6 +135,11 @@ public class QuestionServiceImpl implements QuestionService {
     @Override
     public void deleteQuestion(UUID id) {
         Question question = questionRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Question not found with id: " + id));
+//        UUID currentUserId = currentUserService.getCurrentUserId();
+//        if (!question.getUser().getId().equals(currentUserId)) {
+//            throw new ForbiddenException("You are not allowed to delete this question");
+//        }
+        currentUserService.verifyOwner(question.getUser().getId(), "You are not allowed to delete this question");
         questionRepository.delete(question);
     }
 

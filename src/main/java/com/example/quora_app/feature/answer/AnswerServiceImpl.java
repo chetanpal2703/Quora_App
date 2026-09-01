@@ -3,6 +3,7 @@ package com.example.quora_app.feature.answer;
 import com.example.quora_app.core.common.dto.PageResponse;
 import com.example.quora_app.core.common.mapper.PageMapper;
 import com.example.quora_app.core.exception.BadRequestException;
+import com.example.quora_app.core.exception.ForbiddenException;
 import com.example.quora_app.core.exception.ResourceNotFoundException;
 import com.example.quora_app.core.security.CurrentUserService;
 import com.example.quora_app.feature.answer.dto.AnswerCreateRequest;
@@ -95,6 +96,14 @@ public class AnswerServiceImpl implements AnswerService {
     @Override
     public AnswerResponse updateAnswer(UUID id, AnswerUpdateRequest request) {
         Answer answer=answerRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Answer not found with id: " + id));
+
+//        UUID currentUserId = currentUserService.getCurrentUserId();
+
+        currentUserService.verifyOwner(answer.getUser().getId(),"You are not allowed to update this answer");
+
+//        if (!answer.getUser().getId().equals(currentUserId)) {
+//            throw new ForbiddenException("You are not allowed to update this answer");
+//        }
         if (answer.getContent() != null && answer.getContent().equals(request.getContent())) {
             return answerMapper.toResponse(answer);
         }
@@ -106,6 +115,12 @@ public class AnswerServiceImpl implements AnswerService {
     @Override
     public void deleteAnswer(UUID id) {
         Answer answer = answerRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Answer not found with id: " + id));
+//        UUID currentUserId = currentUserService.getCurrentUserId();
+
+        currentUserService.verifyOwner(answer.getUser().getId(),"You are not allowed to delete this answer");
+//        if (!answer.getUser().getId().equals(currentUserId)) {
+//            throw new ForbiddenException("You are not allowed to delete this answer");
+//        }
         answerRepository.delete(answer);
     }
 }

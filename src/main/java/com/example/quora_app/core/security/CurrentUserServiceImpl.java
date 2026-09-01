@@ -1,5 +1,6 @@
 package com.example.quora_app.core.security;
 
+import com.example.quora_app.core.exception.ForbiddenException;
 import com.example.quora_app.core.exception.UnauthorizedException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
@@ -19,5 +20,13 @@ public class CurrentUserServiceImpl implements CurrentUserService {
         }
         CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
         return userDetails.getUserId();
+    }
+
+    @Override
+    public void verifyOwner(UUID ownerId, String message) {
+        UUID currentUserId = getCurrentUserId();
+        if (!ownerId.equals(currentUserId)) {
+            throw new ForbiddenException(message);
+        }
     }
 }

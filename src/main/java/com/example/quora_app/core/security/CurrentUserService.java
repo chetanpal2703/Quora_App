@@ -4,4 +4,5 @@ import java.util.UUID;
 
 public interface CurrentUserService {
     UUID getCurrentUserId();
+    public void verifyOwner(UUID ownerId, String message);
 }
