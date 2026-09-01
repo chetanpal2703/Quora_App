@@ -32,7 +32,7 @@ public class QuestionServiceImpl implements QuestionService {
 
     @Override
     public QuestionResponse createQuestion(QuestionCreateRequest request) {
-        User user=userRepository.findById(currentUserService.getCurrentUserId()).orElseThrow(()->new ResourceNotFoundException("User not found with id: "+request.getUserId()));
+        User user=userRepository.findById(currentUserService.getCurrentUserId()).orElseThrow(()->new ResourceNotFoundException("User not found with id: "+currentUserService.getCurrentUserId()));
         Question question= Question.builder()
                 .title(request.getTitle())
                 .content(request.getContent())

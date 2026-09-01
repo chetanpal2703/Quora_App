@@ -22,17 +22,6 @@ import java.util.UUID;
 public class UserController {
     private final UserService userService;
 
-    @PostMapping
-    public ResponseEntity<ApiResponse<UserResponse>> createUser(@Valid @RequestBody UserRegistrationRequest userRegistrationRequest) {
-        UserResponse userResponse = userService.register(userRegistrationRequest);
-        ApiResponse<UserResponse> response = ApiResponse.<UserResponse>builder()
-                .success(true)
-                .message("User registered successfully")
-                .data(userResponse)
-                .build();
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
-    }
-
     @GetMapping("/getAllUser")
     public ResponseEntity<ApiResponse<List<UserResponse>>> getAllUser() {
         List<UserResponse> userResponses=userService.getAllUsersWithoutParams();

@@ -15,7 +15,6 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface UserService {
-    UserResponse register(UserRegistrationRequest request);
 
     UserResponse getUserById(UUID id);
 

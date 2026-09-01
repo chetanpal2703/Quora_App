@@ -30,26 +30,7 @@ public class UserServiceImpl implements UserService {
     private final PageMapper pageMapper;
     private static final Set<String> ALLOWED_SORT_FIELDS = Set.of("id", "name", "username", "email", "createdAt", "updatedAt");
 
-    @Override
-    public UserResponse register(UserRegistrationRequest request) {
-        if (userRepository.existsByUsername(request.getUsername())) {
-            throw new ResourceAlreadyExistsException("Username already exists");
-        }
 
-        if (userRepository.existsByEmail(request.getEmail())) {
-            throw new ResourceAlreadyExistsException("Email already exists");
-        }
-        String encodedPassword = passwordEncoder.encode(request.getPassword());
-
-        User user=User.builder().name(request.getName())
-                .email(request.getEmail())
-                .password(encodedPassword)
-                .username(request.getUsername())
-                .build();
-
-        User savedUser = userRepository.save(user);
-        return userMapper.toResponse(savedUser);
-    }
 
     @Override
     public UserResponse getUserById(UUID id) {
