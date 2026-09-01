@@ -20,7 +20,4 @@ public class QuestionCreateRequest {
     @NotBlank(message = "Content is required")
     @Size(min = 10, message = "Content must be at least 10 characters")
     private String content;
-
-    @NotNull(message = "User ID is required")
-    private UUID userId;
 }

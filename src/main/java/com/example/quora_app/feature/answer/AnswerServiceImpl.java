@@ -4,6 +4,7 @@ import com.example.quora_app.core.common.dto.PageResponse;
 import com.example.quora_app.core.common.mapper.PageMapper;
 import com.example.quora_app.core.exception.BadRequestException;
 import com.example.quora_app.core.exception.ResourceNotFoundException;
+import com.example.quora_app.core.security.CurrentUserService;
 import com.example.quora_app.feature.answer.dto.AnswerCreateRequest;
 import com.example.quora_app.feature.answer.dto.AnswerResponse;
 import com.example.quora_app.feature.answer.dto.AnswerUpdateRequest;
@@ -30,10 +31,11 @@ public class AnswerServiceImpl implements AnswerService {
     private final QuestionRepository questionRepository;
     private final AnswerMapper answerMapper;
     private final PageMapper pageMapper;
+    private final CurrentUserService currentUserService;
 
     @Override
     public AnswerResponse createAnswer(AnswerCreateRequest request) {
-        User user = userRepository.findById(request.getUserId()).orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + request.getUserId()));
+        User user = userRepository.findById(currentUserService.getCurrentUserId()).orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + currentUserService.getCurrentUserId()));
 
         Question question = questionRepository.findById(request.getQuestionId()).orElseThrow(() -> new ResourceNotFoundException("Question not found with id: " + request.getQuestionId()));
 

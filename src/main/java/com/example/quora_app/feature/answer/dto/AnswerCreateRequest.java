@@ -19,9 +19,6 @@ public class AnswerCreateRequest {
     @Size(min = 10, message = "Answer must be at least 10 characters")
     private String content;
 
-    @NotNull(message = "User ID is required")
-    private UUID userId;
-
     @NotNull(message = "Question ID is required")
     private UUID questionId;
 }
