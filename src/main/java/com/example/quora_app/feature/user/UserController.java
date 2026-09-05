@@ -2,6 +2,7 @@ package com.example.quora_app.feature.user;
 
 import com.example.quora_app.core.common.dto.ApiResponse;
 import com.example.quora_app.core.common.dto.PageResponse;
+import com.example.quora_app.feature.user.dto.CurrentUserResponse;
 import com.example.quora_app.feature.user.dto.UserRegistrationRequest;
 import com.example.quora_app.feature.user.dto.UserResponse;
 import com.example.quora_app.feature.user.dto.UserUpdateRequest;
@@ -76,5 +77,17 @@ public class UserController {
                         .data(users)
                         .build();
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<ApiResponse<CurrentUserResponse>> getCurrentUser() {
+
+        CurrentUserResponse response = userService.getCurrentUser();
+        ApiResponse<CurrentUserResponse> apiResponse=ApiResponse.<CurrentUserResponse>builder().
+                success(true)
+                .message("Roles and Permission fetched successfully")
+                .data(response)
+                .build();
+        return ResponseEntity.ok(apiResponse);
     }
 }

@@ -5,7 +5,10 @@ import com.example.quora_app.core.common.mapper.PageMapper;
 import com.example.quora_app.core.exception.BadRequestException;
 import com.example.quora_app.core.exception.ResourceAlreadyExistsException;
 import com.example.quora_app.core.exception.ResourceNotFoundException;
-import com.example.quora_app.feature.user.dto.UserRegistrationRequest;
+import com.example.quora_app.core.security.CurrentUserService;
+import com.example.quora_app.feature.authorization.entity.Permission;
+import com.example.quora_app.feature.authorization.entity.Role;
+import com.example.quora_app.feature.user.dto.CurrentUserResponse;
 import com.example.quora_app.feature.user.dto.UserResponse;
 import com.example.quora_app.feature.user.dto.UserUpdateRequest;
 import com.example.quora_app.feature.user.mapper.UserMapper;
@@ -20,6 +23,7 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -28,6 +32,7 @@ public class UserServiceImpl implements UserService {
     private final PasswordEncoder passwordEncoder;
     private final UserMapper userMapper;
     private final PageMapper pageMapper;
+    private final CurrentUserService currentUserService;
     private static final Set<String> ALLOWED_SORT_FIELDS = Set.of("id", "name", "username", "email", "createdAt", "updatedAt");
 
 
@@ -128,5 +133,33 @@ public class UserServiceImpl implements UserService {
                 userPage,
                 userMapper::toResponse
         );
+    }
+
+    @Override
+    public CurrentUserResponse getCurrentUser() {
+        UUID userId = currentUserService.getCurrentUserId();
+        User user = userRepository.findWithRolesAndPermissionsById(userId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("User not found"));
+
+        Set<String> roles = user.getRoles()
+                .stream()
+                .map(Role::getName)
+                .collect(Collectors.toSet());
+
+        Set<String> permissions = user.getRoles()
+                .stream()
+                .flatMap(role -> role.getPermissions().stream())
+                .map(Permission::getName)
+                .collect(Collectors.toSet());
+
+        return CurrentUserResponse.builder()
+                .id(user.getId())
+                .name(user.getName())
+                .username(user.getUsername())
+                .email(user.getEmail())
+                .roles(roles)
+                .permissions(permissions)
+                .build();
     }
 }
