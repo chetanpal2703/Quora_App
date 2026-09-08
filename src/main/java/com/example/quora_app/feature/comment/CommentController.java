@@ -5,6 +5,7 @@ import com.example.quora_app.feature.comment.dto.CommentCreateRequest;
 import com.example.quora_app.feature.comment.dto.CommentResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
@@ -27,6 +28,18 @@ public class CommentController {
                 .success(true)
                 .message("Question Comment created successfully")
                 .data(commentResponse)
+                .build();
+        return ResponseEntity.ok(apiResponse);
+    }
+
+    @PreAuthorize("hasAuthority('COMMENT_CREATE')")
+    @PostMapping("/answers/{answerId}/comments")
+    public ResponseEntity<ApiResponse<CommentResponse>> createAnswerComment(@PathVariable UUID answerId, @Valid @RequestBody CommentCreateRequest request) {
+        CommentResponse response = commentService.createAnswerComment(answerId, request);
+        ApiResponse<CommentResponse> apiResponse = ApiResponse.<CommentResponse>builder()
+                .success(true)
+                .message("Answer Comment created successfully")
+                .data(response)
                 .build();
         return ResponseEntity.ok(apiResponse);
     }
