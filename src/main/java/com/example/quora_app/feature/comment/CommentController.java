@@ -1,11 +1,11 @@
 package com.example.quora_app.feature.comment;
 
 import com.example.quora_app.core.common.dto.ApiResponse;
+import com.example.quora_app.core.common.dto.PageResponse;
 import com.example.quora_app.feature.comment.dto.CommentCreateRequest;
 import com.example.quora_app.feature.comment.dto.CommentResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
@@ -39,6 +39,41 @@ public class CommentController {
         ApiResponse<CommentResponse> apiResponse = ApiResponse.<CommentResponse>builder()
                 .success(true)
                 .message("Answer Comment created successfully")
+                .data(response)
+                .build();
+        return ResponseEntity.ok(apiResponse);
+    }
+
+    @GetMapping("/questions/{questionId}/comments")
+    public ResponseEntity<ApiResponse<PageResponse<CommentResponse>>> getQuestionComments(
+            @PathVariable UUID questionId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "asc") String sortDir
+    ) {
+
+        PageResponse<CommentResponse> response = commentService.getQuestionComments(questionId, page, size, sortBy, sortDir);
+        ApiResponse<PageResponse<CommentResponse>> apiResponse= ApiResponse.<PageResponse<CommentResponse>>builder()
+                .success(true)
+                .message("Question Comment found successfully")
+                .data(response)
+                .build();
+        return ResponseEntity.ok(apiResponse);
+    }
+
+    @GetMapping("/answers/{answerId}/comments")
+    public ResponseEntity<ApiResponse<PageResponse<CommentResponse>>> getAnswerComments(
+            @PathVariable UUID answerId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "asc") String sortDir
+    ) {
+        PageResponse<CommentResponse> response = commentService.getAnswerComments(answerId, page, size, sortBy, sortDir);
+        ApiResponse<PageResponse<CommentResponse>> apiResponse= ApiResponse.<PageResponse<CommentResponse>>builder()
+                .success(true)
+                .message("Answer Comment found successfully")
                 .data(response)
                 .build();
         return ResponseEntity.ok(apiResponse);

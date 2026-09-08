@@ -1,5 +1,7 @@
 package com.example.quora_app.feature.comment;
 
+import com.example.quora_app.core.common.dto.PageResponse;
+import com.example.quora_app.core.common.mapper.PageMapper;
 import com.example.quora_app.core.exception.ResourceNotFoundException;
 import com.example.quora_app.core.security.CurrentUserService;
 import com.example.quora_app.feature.answer.Answer;
@@ -11,9 +13,14 @@ import com.example.quora_app.feature.question.Question;
 import com.example.quora_app.feature.question.QuestionRepository;
 import com.example.quora_app.feature.user.User;
 import com.example.quora_app.feature.user.UserRepository;
-import jakarta.transaction.Transactional;
+
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
@@ -26,6 +33,7 @@ public class CommentServiceImpl implements CommentService {
     private final CurrentUserService currentUserService;
     private final UserRepository userRepository;
     private final CommentMapper commentMapper;
+    private final PageMapper pageMapper;
 
     @Override
     @Transactional
@@ -55,5 +63,37 @@ public class CommentServiceImpl implements CommentService {
                 .build();
         Comment savedComment = commentRepository.save(comment);
         return commentMapper.toCommentResponse(savedComment);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<CommentResponse> getQuestionComments(
+            UUID questionId,
+            int page,
+            int size,
+            String sortBy,
+            String sortDir
+    ) {
+        questionRepository.findById(questionId).orElseThrow(() -> new ResourceNotFoundException("Question not found"));
+        Sort sort = sortDir.equalsIgnoreCase("desc") ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
+        Pageable pageable = PageRequest.of(page, size, sort);
+        Page<Comment> comments = commentRepository.findByQuestionId(questionId, pageable);
+        return pageMapper.toPageResponse(comments, commentMapper::toCommentResponse);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<CommentResponse> getAnswerComments(
+            UUID answerId,
+            int page,
+            int size,
+            String sortBy,
+            String sortDir
+    ) {
+        answerRepository.findById(answerId).orElseThrow(() -> new ResourceNotFoundException("Answer not found"));
+        Sort sort = sortDir.equalsIgnoreCase("desc") ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
+        Pageable pageable = PageRequest.of(page, size, sort);
+        Page<Comment> comments = commentRepository.findByAnswerId(answerId, pageable);
+        return pageMapper.toPageResponse(comments, commentMapper::toCommentResponse);
     }
 }
