@@ -15,4 +15,5 @@ public interface CommentService {
     PageResponse<CommentResponse> getAnswerComments(UUID answerId, int page, int size, String sortBy, String sortDir);
 
     CommentResponse updateComment(UUID commentId, CommentUpdateRequest request);
+    void deleteComment(UUID commentId);
 }

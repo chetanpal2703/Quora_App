@@ -110,4 +110,15 @@ public class CommentServiceImpl implements CommentService {
         comment.setContent(request.getContent());
         return commentMapper.toCommentResponse(comment);
     }
+
+    @Override
+    @Transactional
+    public void deleteComment(UUID commentId) {
+        UUID currentUserId = currentUserService.getCurrentUserId();
+        Comment comment = commentRepository.findById(commentId).orElseThrow(() -> new ResourceNotFoundException("Comment not found"));
+        if (!comment.getUser().getId().equals(currentUserId)) {
+            throw new ForbiddenException("You are not allowed to delete this comment");
+        }
+        commentRepository.delete(comment);
+    }
 }

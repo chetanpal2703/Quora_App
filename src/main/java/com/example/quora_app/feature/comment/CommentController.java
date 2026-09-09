@@ -91,4 +91,11 @@ public class CommentController {
                 .build();
         return ResponseEntity.ok(apiResponse);
     }
+
+    @PreAuthorize("hasAuthority('COMMENT_DELETE')")
+    @DeleteMapping("/comments/{commentId}")
+    public ResponseEntity<Void> deleteComment(@PathVariable UUID commentId) {
+        commentService.deleteComment(commentId);
+        return ResponseEntity.noContent().build();
+    }
 }
