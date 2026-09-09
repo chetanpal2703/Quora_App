@@ -2,12 +2,14 @@ package com.example.quora_app.feature.comment;
 
 import com.example.quora_app.core.common.dto.PageResponse;
 import com.example.quora_app.core.common.mapper.PageMapper;
+import com.example.quora_app.core.exception.ForbiddenException;
 import com.example.quora_app.core.exception.ResourceNotFoundException;
 import com.example.quora_app.core.security.CurrentUserService;
 import com.example.quora_app.feature.answer.Answer;
 import com.example.quora_app.feature.answer.AnswerRepository;
 import com.example.quora_app.feature.comment.dto.CommentCreateRequest;
 import com.example.quora_app.feature.comment.dto.CommentResponse;
+import com.example.quora_app.feature.comment.dto.CommentUpdateRequest;
 import com.example.quora_app.feature.comment.mapper.CommentMapper;
 import com.example.quora_app.feature.question.Question;
 import com.example.quora_app.feature.question.QuestionRepository;
@@ -95,5 +97,17 @@ public class CommentServiceImpl implements CommentService {
         Pageable pageable = PageRequest.of(page, size, sort);
         Page<Comment> comments = commentRepository.findByAnswerId(answerId, pageable);
         return pageMapper.toPageResponse(comments, commentMapper::toCommentResponse);
+    }
+
+    @Override
+    @Transactional
+    public CommentResponse updateComment(UUID commentId, CommentUpdateRequest request) {
+        UUID currentUserId = currentUserService.getCurrentUserId();
+        Comment comment = commentRepository.findById(commentId).orElseThrow(() -> new ResourceNotFoundException("Comment not found"));
+        if (!comment.getUser().getId().equals(currentUserId)) {
+            throw new ForbiddenException("You are not allowed to update this comment");
+        }
+        comment.setContent(request.getContent());
+        return commentMapper.toCommentResponse(comment);
     }
 }

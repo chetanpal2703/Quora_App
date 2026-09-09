@@ -4,6 +4,7 @@ import com.example.quora_app.core.common.dto.ApiResponse;
 import com.example.quora_app.core.common.dto.PageResponse;
 import com.example.quora_app.feature.comment.dto.CommentCreateRequest;
 import com.example.quora_app.feature.comment.dto.CommentResponse;
+import com.example.quora_app.feature.comment.dto.CommentUpdateRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -74,6 +75,18 @@ public class CommentController {
         ApiResponse<PageResponse<CommentResponse>> apiResponse= ApiResponse.<PageResponse<CommentResponse>>builder()
                 .success(true)
                 .message("Answer Comment found successfully")
+                .data(response)
+                .build();
+        return ResponseEntity.ok(apiResponse);
+    }
+
+    @PreAuthorize("hasAuthority('COMMENT_UPDATE')")
+    @PatchMapping("/comments/{commentId}")
+    public ResponseEntity<ApiResponse<CommentResponse>> updateComment(@PathVariable UUID commentId, @Valid @RequestBody CommentUpdateRequest request) {
+        CommentResponse response = commentService.updateComment(commentId, request);
+        ApiResponse<CommentResponse> apiResponse= ApiResponse.<CommentResponse>builder()
+                .success(true)
+                .message("Comment updated successfully")
                 .data(response)
                 .build();
         return ResponseEntity.ok(apiResponse);
