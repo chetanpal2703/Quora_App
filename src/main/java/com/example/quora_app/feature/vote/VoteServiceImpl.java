@@ -9,8 +9,10 @@ import com.example.quora_app.feature.question.QuestionRepository;
 import com.example.quora_app.feature.user.User;
 import com.example.quora_app.feature.user.UserRepository;
 import com.example.quora_app.feature.vote.dto.VoteRequest;
+import com.example.quora_app.feature.vote.dto.VoteSummaryResponse;
 import com.example.quora_app.feature.vote.entity.AnswerVote;
 import com.example.quora_app.feature.vote.entity.QuestionVote;
+import com.example.quora_app.feature.vote.enums.VoteType;
 import com.example.quora_app.feature.vote.repository.AnswerVoteRepository;
 import com.example.quora_app.feature.vote.repository.QuestionVoteRepository;
 import lombok.RequiredArgsConstructor;
@@ -81,5 +83,35 @@ public class VoteServiceImpl implements VoteService {
         UUID currentUserId = currentUserService.getCurrentUserId();
         AnswerVote vote = answerVoteRepository.findByUserIdAndAnswerId(currentUserId, answerId).orElseThrow(() -> new ResourceNotFoundException("Vote not found"));
         answerVoteRepository.delete(vote);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public VoteSummaryResponse getQuestionVoteSummary(UUID questionId) {
+        questionRepository.findById(questionId).orElseThrow(() -> new ResourceNotFoundException("Question not found"));
+        long upvotes = questionVoteRepository.countByQuestionIdAndType(questionId, VoteType.UPVOTE);
+        long downvotes = questionVoteRepository.countByQuestionIdAndType(questionId, VoteType.DOWNVOTE);
+        UUID currentUserId = currentUserService.getCurrentUserId();
+        VoteType myVote = questionVoteRepository.findByUserIdAndQuestionId(currentUserId, questionId).map(QuestionVote::getType).orElse(null);
+        return VoteSummaryResponse.builder()
+                .upvotes(upvotes)
+                .downvotes(downvotes)
+                .myVote(myVote)
+                .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public VoteSummaryResponse getAnswerVoteSummary(UUID answerId) {
+        answerRepository.findById(answerId).orElseThrow(() -> new ResourceNotFoundException("Answer not found"));
+        long upvotes = answerVoteRepository.countByAnswerIdAndType(answerId, VoteType.UPVOTE);
+        long downvotes = answerVoteRepository.countByAnswerIdAndType(answerId, VoteType.DOWNVOTE);
+        UUID currentUserId = currentUserService.getCurrentUserId();
+        VoteType myVote = answerVoteRepository.findByUserIdAndAnswerId(currentUserId, answerId).map(AnswerVote::getType).orElse(null);
+        return VoteSummaryResponse.builder()
+                .upvotes(upvotes)
+                .downvotes(downvotes)
+                .myVote(myVote)
+                .build();
     }
 }

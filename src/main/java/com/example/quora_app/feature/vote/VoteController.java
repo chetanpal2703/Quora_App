@@ -2,8 +2,8 @@ package com.example.quora_app.feature.vote;
 
 import com.example.quora_app.core.common.dto.ApiResponse;
 import com.example.quora_app.feature.vote.dto.VoteRequest;
+import com.example.quora_app.feature.vote.dto.VoteSummaryResponse;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.Null;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -55,5 +55,27 @@ public class VoteController {
     public ResponseEntity<Void> removeAnswerVote(@PathVariable UUID answerId) {
         voteService.removeVoteFromAnswer(answerId);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/questions/{questionId}/votes/summary")
+    public ResponseEntity<ApiResponse<VoteSummaryResponse>> getQuestionVoteSummary(@PathVariable UUID questionId) {
+        VoteSummaryResponse response = voteService.getQuestionVoteSummary(questionId);
+        ApiResponse<VoteSummaryResponse> apiResponse=ApiResponse.<VoteSummaryResponse>builder()
+                .success(true)
+                .message("Question vote summary fetched successfully")
+                .data(response)
+                .build();
+        return ResponseEntity.ok(apiResponse);
+    }
+
+    @GetMapping("/answers/{answerId}/votes/summary")
+    public ResponseEntity<ApiResponse<VoteSummaryResponse>> getAnswerVoteSummary(@PathVariable UUID answerId) {
+        VoteSummaryResponse response = voteService.getAnswerVoteSummary(answerId);
+        ApiResponse<VoteSummaryResponse> apiResponse=ApiResponse.<VoteSummaryResponse>builder()
+                .success(true)
+                .message("Answer vote summary fetched successfully")
+                .data(response)
+                .build();
+        return ResponseEntity.ok(apiResponse);
     }
 }
