@@ -1,0 +1,37 @@
+INSERT INTO permissions (id, created_at, updated_at, name)
+VALUES
+    (
+        UUID_TO_BIN('50000000-0000-0000-0000-000000000001'),
+        NOW(6),
+        NOW(6),
+        'VOTE_CREATE'
+    ),
+    (
+        UUID_TO_BIN('50000000-0000-0000-0000-000000000002'),
+        NOW(6),
+        NOW(6),
+        'VOTE_DELETE'
+    );
+
+
+INSERT INTO role_permissions (role_id, permission_id)
+VALUES
+    -- USER
+    (
+        UUID_TO_BIN('00000000-0000-0000-0000-000000000001'),
+        UUID_TO_BIN('50000000-0000-0000-0000-000000000001')
+    ),
+    (
+        UUID_TO_BIN('00000000-0000-0000-0000-000000000001'),
+        UUID_TO_BIN('50000000-0000-0000-0000-000000000002')
+    ),
+
+    -- ADMIN
+    (
+        UUID_TO_BIN('00000000-0000-0000-0000-000000000002'),
+        UUID_TO_BIN('50000000-0000-0000-0000-000000000001')
+    ),
+    (
+        UUID_TO_BIN('00000000-0000-0000-0000-000000000002'),
+        UUID_TO_BIN('50000000-0000-0000-0000-000000000002')
+    );
