@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 
+import java.util.Set;
 import java.util.UUID;
 
 @Data
@@ -20,4 +21,6 @@ public class QuestionCreateRequest {
     @NotBlank(message = "Content is required")
     @Size(min = 10, message = "Content must be at least 10 characters")
     private String content;
+
+    private Set<String> tags;
 }

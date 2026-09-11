@@ -3,6 +3,7 @@ package com.example.quora_app.feature.question.dto;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.Set;
 import java.util.UUID;
 
 @Data
@@ -14,6 +15,7 @@ public class QuestionResponse {
     private UUID id;
     private String title;
     private String content;
+    private Set<String> tags;
 
     private UUID userId;
     private String username;

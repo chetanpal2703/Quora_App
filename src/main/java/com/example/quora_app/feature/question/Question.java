@@ -2,12 +2,15 @@ package com.example.quora_app.feature.question;
 
 import com.example.quora_app.core.common.entity.BaseEntity;
 import com.example.quora_app.feature.answer.Answer;
+import com.example.quora_app.feature.tag.Tag;
 import com.example.quora_app.feature.user.User;
 import jakarta.persistence.*;
 import lombok.*;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Entity
 @Table(name = "questions")
@@ -29,5 +32,14 @@ public class Question extends BaseEntity {
 
     @OneToMany(mappedBy = "question")
     private List<Answer> answers=new ArrayList<>();
+
+    @ManyToMany
+    @JoinTable(
+            name = "question_tags",
+            joinColumns = @JoinColumn(name = "question_id"),
+            inverseJoinColumns = @JoinColumn(name = "tag_id")
+    )
+    @Builder.Default
+    private Set<Tag> tags = new HashSet<>();
 
 }

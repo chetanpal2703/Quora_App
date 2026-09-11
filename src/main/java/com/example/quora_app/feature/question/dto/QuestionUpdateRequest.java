@@ -6,6 +6,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.Set;
+
 @Data
 @Builder
 @NoArgsConstructor
@@ -16,4 +18,6 @@ public class QuestionUpdateRequest {
 
     @Size(min = 10, message = "Content must be at least 10 characters")
     private String content;
+
+    private Set<String> tags;
 }

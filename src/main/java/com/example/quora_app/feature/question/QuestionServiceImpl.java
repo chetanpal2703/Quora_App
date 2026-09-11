@@ -10,6 +10,8 @@ import com.example.quora_app.feature.question.dto.QuestionCreateRequest;
 import com.example.quora_app.feature.question.dto.QuestionResponse;
 import com.example.quora_app.feature.question.dto.QuestionUpdateRequest;
 import com.example.quora_app.feature.question.mapper.QuestionMapper;
+import com.example.quora_app.feature.tag.Tag;
+import com.example.quora_app.feature.tag.TagRepository;
 import com.example.quora_app.feature.user.User;
 import com.example.quora_app.feature.user.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -19,25 +21,49 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
+import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class QuestionServiceImpl implements QuestionService {
     private final QuestionRepository questionRepository;
     private final UserRepository userRepository;
+    private final CurrentUserService currentUserService;
+    private final TagRepository tagRepository;
     private final QuestionMapper questionMapper;
     private final PageMapper pageMapper;
-    private final CurrentUserService currentUserService;
+
+    private Set<Tag> resolveTags(Set<String> tagNames) {
+        if (tagNames == null || tagNames.isEmpty()) {
+            return new HashSet<>();
+        }
+        return tagNames.stream()
+                .map(String::trim)
+                .filter(name -> !name.isBlank())
+                .map(String::toLowerCase)
+                .map(this::findOrCreateTag)
+                .collect(Collectors.toSet());
+    }
+
+    private Tag findOrCreateTag(String name) {
+        return tagRepository.findByNameIgnoreCase(name)
+                .orElseGet(
+                        () -> tagRepository.save(Tag.builder().name(name).build())
+                );
+    }
 
     @Override
     public QuestionResponse createQuestion(QuestionCreateRequest request) {
         User user=userRepository.findById(currentUserService.getCurrentUserId()).orElseThrow(()->new ResourceNotFoundException("User not found with id: "+currentUserService.getCurrentUserId()));
+        Set<Tag> tags = resolveTags(request.getTags());
         Question question= Question.builder()
                 .title(request.getTitle())
                 .content(request.getContent())
                 .user(user)
+                .tags(tags)
                 .build();
         Question savedQuestion= questionRepository.save(question);
         return questionMapper.toResponse(savedQuestion);
@@ -127,6 +153,9 @@ public class QuestionServiceImpl implements QuestionService {
         }
         if (request.getContent() != null && !request.getContent().equals(question.getContent())) {
             question.setContent(request.getContent());
+        }
+        if (request.getTags() != null) {
+            question.setTags(resolveTags(request.getTags()));
         }
         Question savedQuestion = questionRepository.save(question);
         return questionMapper.toResponse(savedQuestion);
