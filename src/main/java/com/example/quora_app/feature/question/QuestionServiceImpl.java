@@ -3,13 +3,13 @@ package com.example.quora_app.feature.question;
 import com.example.quora_app.core.common.dto.PageResponse;
 import com.example.quora_app.core.common.mapper.PageMapper;
 import com.example.quora_app.core.exception.BadRequestException;
-import com.example.quora_app.core.exception.ForbiddenException;
 import com.example.quora_app.core.exception.ResourceNotFoundException;
 import com.example.quora_app.core.security.CurrentUserService;
 import com.example.quora_app.feature.question.dto.QuestionCreateRequest;
 import com.example.quora_app.feature.question.dto.QuestionResponse;
 import com.example.quora_app.feature.question.dto.QuestionUpdateRequest;
 import com.example.quora_app.feature.question.mapper.QuestionMapper;
+import com.example.quora_app.feature.question.specification.QuestionSpecification;
 import com.example.quora_app.feature.tag.Tag;
 import com.example.quora_app.feature.tag.TagRepository;
 import com.example.quora_app.feature.user.User;
@@ -19,6 +19,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.util.HashSet;
@@ -81,9 +82,9 @@ public class QuestionServiceImpl implements QuestionService {
             int size,
             String sortBy,
             String sortDir,
-            String search
+            String search,
+            String tag
     ) {
-
         if (page < 0) {
             throw new BadRequestException("Page cannot be negative");
         }
@@ -99,9 +100,7 @@ public class QuestionServiceImpl implements QuestionService {
         Set<String> allowedSortFields = Set.of("id", "title", "createdAt", "updatedAt");
 
         if (!allowedSortFields.contains(sortBy)) {
-            throw new BadRequestException(
-                    "Invalid sort field: " + sortBy
-            );
+            throw new BadRequestException("Invalid sort field: " + sortBy);
         }
 
         Sort.Direction direction =
@@ -117,22 +116,23 @@ public class QuestionServiceImpl implements QuestionService {
 
         Page<Question> questionPage;
 
-        if (search == null || search.isBlank()) {
+        Specification<Question> specification = Specification
+                .where(QuestionSpecification.containsSearch(search))
+                .and(QuestionSpecification.hasTag(tag));
 
-            questionPage = questionRepository.findAll(pageable);
-
-        } else {
-
-            String keyword = search.trim();
-
-            questionPage =
-                    questionRepository
-                            .findByTitleContainingIgnoreCaseOrContentContainingIgnoreCase(
-                                    keyword,
-                                    keyword,
-                                    pageable
-                            );
-        }
+        questionPage= questionRepository.findAll(specification, pageable);
+//        if (search == null || search.isBlank()) {
+//            questionPage = questionRepository.findAll(pageable);
+//        }
+//        else {
+//            String keyword = search.trim();
+//            questionPage = questionRepository
+//                            .findByTitleContainingIgnoreCaseOrContentContainingIgnoreCase(
+//                                    keyword,
+//                                    keyword,
+//                                    pageable
+//                            );
+//        }
 
         return pageMapper.toPageResponse(
                 questionPage,

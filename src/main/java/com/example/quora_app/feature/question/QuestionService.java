@@ -15,7 +15,7 @@ public interface QuestionService {
 
 //    PageResponse<QuestionResponse> getAllQuestions(int page, int size, String sortBy, String sortDir);
 
-    PageResponse<QuestionResponse> getAllQuestions(int page, int size, String sortBy, String sortDir, String search);
+    PageResponse<QuestionResponse> getAllQuestions(int page, int size, String sortBy, String sortDir, String search, String tag);
 
     QuestionResponse updateQuestion(UUID id, QuestionUpdateRequest request);
 

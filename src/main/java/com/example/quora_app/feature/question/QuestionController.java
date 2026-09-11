@@ -53,9 +53,10 @@ public class QuestionController {
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "createdAt") String sortBy,
             @RequestParam(defaultValue = "desc") String sortDir,
-            @RequestParam(required = false) String search
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String tag
     ) {
-        PageResponse<QuestionResponse> questions = questionService.getAllQuestions(page, size, sortBy, sortDir,search);
+        PageResponse<QuestionResponse> questions = questionService.getAllQuestions(page, size, sortBy, sortDir,search,tag);
 
         ApiResponse<PageResponse<QuestionResponse>> response =
                 ApiResponse.<PageResponse<QuestionResponse>>builder()
