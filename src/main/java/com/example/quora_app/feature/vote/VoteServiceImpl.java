@@ -5,7 +5,7 @@ import com.example.quora_app.core.security.CurrentUserService;
 import com.example.quora_app.feature.answer.Answer;
 import com.example.quora_app.feature.answer.AnswerRepository;
 import com.example.quora_app.feature.question.Question;
-import com.example.quora_app.feature.question.QuestionRepository;
+import com.example.quora_app.feature.question.repository.QuestionRepository;
 import com.example.quora_app.feature.user.User;
 import com.example.quora_app.feature.user.UserRepository;
 import com.example.quora_app.feature.vote.dto.VoteRequest;

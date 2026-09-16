@@ -1,14 +1,17 @@
-package com.example.quora_app.feature.question;
+package com.example.quora_app.feature.question.repository;
 
+import com.example.quora_app.feature.question.Question;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.UUID;
 
-public interface QuestionRepository extends JpaRepository<Question, UUID>, JpaSpecificationExecutor<Question> {
+public interface QuestionRepository extends JpaRepository<Question, UUID>, JpaSpecificationExecutor<Question>,QuestionSearchRepository {
 
     @EntityGraph(attributePaths = "user")
     @Override

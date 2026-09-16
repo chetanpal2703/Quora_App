@@ -9,6 +9,7 @@ import com.example.quora_app.feature.question.dto.QuestionCreateRequest;
 import com.example.quora_app.feature.question.dto.QuestionResponse;
 import com.example.quora_app.feature.question.dto.QuestionUpdateRequest;
 import com.example.quora_app.feature.question.mapper.QuestionMapper;
+import com.example.quora_app.feature.question.repository.QuestionRepository;
 import com.example.quora_app.feature.question.specification.QuestionSpecification;
 import com.example.quora_app.feature.tag.Tag;
 import com.example.quora_app.feature.tag.TagRepository;
@@ -21,6 +22,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -76,6 +78,7 @@ public class QuestionServiceImpl implements QuestionService {
         return questionMapper.toResponse(question);
     }
 
+    @Transactional(readOnly = true)
     @Override
     public PageResponse<QuestionResponse> getAllQuestions(
             int page,
@@ -85,6 +88,11 @@ public class QuestionServiceImpl implements QuestionService {
             String search,
             String tag
     ) {
+
+        // -----------------------------------------
+        // Pagination validation
+        // -----------------------------------------
+
         if (page < 0) {
             throw new BadRequestException("Page cannot be negative");
         }
@@ -97,42 +105,44 @@ public class QuestionServiceImpl implements QuestionService {
             throw new BadRequestException("Size cannot be greater than 100");
         }
 
-        Set<String> allowedSortFields = Set.of("id", "title", "createdAt", "updatedAt");
-
-        if (!allowedSortFields.contains(sortBy)) {
-            throw new BadRequestException("Invalid sort field: " + sortBy);
-        }
-
-        Sort.Direction direction =
-                "desc".equalsIgnoreCase(sortDir)
-                        ? Sort.Direction.DESC
-                        : Sort.Direction.ASC;
-
-        Pageable pageable = PageRequest.of(
-                page,
-                size,
-                Sort.by(direction, sortBy)
-        );
-
         Page<Question> questionPage;
 
-        Specification<Question> specification = Specification
-                .where(QuestionSpecification.containsSearch(search))
-                .and(QuestionSpecification.hasTag(tag));
+        // =========================================
+        // FULLTEXT SEARCH
+        // =========================================
 
-        questionPage= questionRepository.findAll(specification, pageable);
-//        if (search == null || search.isBlank()) {
-//            questionPage = questionRepository.findAll(pageable);
-//        }
-//        else {
-//            String keyword = search.trim();
-//            questionPage = questionRepository
-//                            .findByTitleContainingIgnoreCaseOrContentContainingIgnoreCase(
-//                                    keyword,
-//                                    keyword,
-//                                    pageable
-//                            );
-//        }
+        if (search != null && !search.isBlank()) {
+            /*
+             * FULLTEXT search controls its own ordering
+             * using relevance DESC.
+             *
+             * Therefore sortBy and sortDir are ignored.
+             */
+            Pageable pageable = PageRequest.of(page, size);
+
+            questionPage = questionRepository.search(search.trim(), tag, pageable);
+        }
+
+        // =========================================
+        // NORMAL LISTING / FILTERING
+        // =========================================
+
+        else {
+
+            Set<String> allowedSortFields = Set.of("id", "title", "createdAt", "updatedAt");
+
+            if (!allowedSortFields.contains(sortBy)) {
+                throw new BadRequestException("Invalid sort field: " + sortBy);
+            }
+
+            Sort.Direction direction = "desc".equalsIgnoreCase(sortDir) ? Sort.Direction.DESC : Sort.Direction.ASC;
+
+            Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+
+            Specification<Question> specification = Specification.where(QuestionSpecification.hasTag(tag));
+
+            questionPage = questionRepository.findAll(specification, pageable);
+        }
 
         return pageMapper.toPageResponse(
                 questionPage,

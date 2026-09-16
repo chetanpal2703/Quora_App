@@ -12,7 +12,7 @@ import com.example.quora_app.feature.comment.dto.CommentResponse;
 import com.example.quora_app.feature.comment.dto.CommentUpdateRequest;
 import com.example.quora_app.feature.comment.mapper.CommentMapper;
 import com.example.quora_app.feature.question.Question;
-import com.example.quora_app.feature.question.QuestionRepository;
+import com.example.quora_app.feature.question.repository.QuestionRepository;
 import com.example.quora_app.feature.user.User;
 import com.example.quora_app.feature.user.UserRepository;
 
