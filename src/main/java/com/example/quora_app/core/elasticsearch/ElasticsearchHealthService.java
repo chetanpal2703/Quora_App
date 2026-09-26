@@ -1,4 +1,4 @@
-package com.example.quora_app.core.service;
+package com.example.quora_app.core.elasticsearch;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import jakarta.annotation.PostConstruct;
