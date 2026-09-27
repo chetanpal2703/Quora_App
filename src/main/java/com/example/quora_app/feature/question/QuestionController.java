@@ -7,6 +7,10 @@ import com.example.quora_app.feature.answer.dto.AnswerResponse;
 import com.example.quora_app.feature.question.dto.QuestionCreateRequest;
 import com.example.quora_app.feature.question.dto.QuestionResponse;
 import com.example.quora_app.feature.question.dto.QuestionUpdateRequest;
+import com.example.quora_app.feature.question.enums.QuestionSearchSort;
+import com.example.quora_app.feature.question.search.QuestionSearchService;
+import com.example.quora_app.feature.question.search.dto.QuestionSearchRequest;
+import com.example.quora_app.feature.question.search.dto.QuestionSearchResult;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -15,6 +19,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.UUID;
 
 @RestController
@@ -24,6 +29,7 @@ import java.util.UUID;
 public class QuestionController {
     private final QuestionService questionService;
     private final AnswerService answerService;
+    private final QuestionSearchService questionSearchService;
 
     @PostMapping
     public ResponseEntity<ApiResponse<QuestionResponse>> createQuestion(@RequestBody QuestionCreateRequest request){
@@ -102,6 +108,19 @@ public class QuestionController {
                 .data(answers)
                 .build();
 
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/search")
+    public ResponseEntity<ApiResponse<PageResponse<QuestionSearchResult>>> search(
+            @Valid @RequestBody QuestionSearchRequest request
+    ) {
+        PageResponse<QuestionSearchResult> results = questionSearchService.search(request);
+        ApiResponse<PageResponse<QuestionSearchResult>> response = ApiResponse.<PageResponse<QuestionSearchResult>>builder()
+                .success(true)
+                .message("Search results fetched successfully")
+                .data(results)
+                .build();
         return ResponseEntity.ok(response);
     }
 }

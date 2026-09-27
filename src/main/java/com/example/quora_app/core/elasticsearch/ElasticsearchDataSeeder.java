@@ -31,13 +31,13 @@ public class ElasticsearchDataSeeder implements CommandLineRunner {
                 .createdAt(LocalDateTime.of(2026, 8, 20, 19, 7, 23))
                 .build();
 
-        searchService.indexQuestion(testQuestion);
-        log.info("Test data insertion complete. Check Kibana!");
-        searchService.searchByTitle("Spring");
+//        searchService.indexQuestion(testQuestion);
+//        log.info("Test data insertion complete. Check Kibana!");
+//        searchService.searchByTitle("Spring");
 
 
         // Fetch the exact same document back out
-        QuestionSearchDocument retrievedDoc = searchService.getQuestion(UUID.fromString("4e4bf8e1-1f19-4752-a4af-d080d378f7b3"));
-        log.info("Successfully fetched from ES: {}", retrievedDoc.getTitle());
+//        QuestionSearchDocument retrievedDoc = searchService.getQuestion(UUID.fromString("4e4bf8e1-1f19-4752-a4af-d080d378f7b3"));
+//        log.info("Successfully fetched from ES: {}", retrievedDoc.getTitle());
     }
 }

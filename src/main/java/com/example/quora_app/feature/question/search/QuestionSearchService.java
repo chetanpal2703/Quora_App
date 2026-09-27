@@ -1,11 +1,19 @@
 package com.example.quora_app.feature.question.search;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import co.elastic.clients.elasticsearch._types.SortOrder;
+import co.elastic.clients.elasticsearch.core.SearchRequest;
+import com.example.quora_app.core.common.dto.PageResponse;
+import com.example.quora_app.feature.question.enums.QuestionSearchSort;
+import com.example.quora_app.feature.question.search.dto.QuestionSearchRequest;
+import com.example.quora_app.feature.question.search.dto.QuestionSearchResult;
+import co.elastic.clients.elasticsearch._types.query_dsl.Query;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -76,6 +84,138 @@ public class QuestionSearchService {
         } catch (IOException e) {
             log.error("Failed to search question from Elasticsearch", e);
             throw new RuntimeException("search failed", e);
+        }
+    }
+
+    // REMOVED: throws IOException from the signature
+    public PageResponse<QuestionSearchResult> search(QuestionSearchRequest request) {
+        try {
+            int from = request.getPage() * request.getSize();
+            SearchRequest.Builder builder = new SearchRequest.Builder()
+                    .index(INDEX_NAME)
+                    .from(from)
+                    .size(request.getSize())
+                    .trackTotalHits(t -> t.enabled(true))
+                    .query(buildQuery(request));
+
+            applySorting(builder, request.getSort());
+
+            var response = elasticsearchClient.search(
+                    builder.build(),
+                    QuestionSearchDocument.class
+            );
+
+            List<QuestionSearchResult> content =
+                    response.hits()
+                            .hits()
+                            .stream()
+                            .map(hit -> QuestionSearchResult.builder()
+                                    .question(hit.source())
+                                    .score(hit.score())
+                                    .build())
+                            .toList();
+
+            long totalElements = response.hits()
+                    .total()
+                    .value();
+
+            int totalPages = (int) ((totalElements + request.getSize() - 1) / request.getSize());
+            boolean first = request.getPage() == 0;
+            boolean last = totalPages == 0 || request.getPage() >= totalPages - 1;
+
+            return PageResponse.<QuestionSearchResult>builder()
+                    .content(content)
+                    .page(request.getPage())
+                    .size(request.getSize())
+                    .totalElements(totalElements)
+                    .totalPages(totalPages)
+                    .first(first)
+                    .last(last)
+                    .build();
+
+        } catch (IOException e) {
+            // CATCH the network error and throw an unchecked RuntimeException instead
+            log.error("Failed to execute Elasticsearch search query", e);
+            throw new RuntimeException("Search service is currently unavailable", e);
+        }
+    }
+
+    private Query buildQuery(QuestionSearchRequest request) {
+
+        return Query.of(q -> q
+                .bool(b -> {
+
+                    if (request.getSearch() != null && !request.getSearch().isBlank()) {
+                        b.must(m -> m
+                                .multiMatch(mm -> mm
+                                        .query(request.getSearch())
+                                        .fields("title", "content")
+                                )
+                        );
+                    }
+
+                    if (request.getTag() != null && !request.getTag().isBlank()) {
+                        b.filter(f -> f
+                                .term(t -> t
+                                        // FIX 3: Target the keyword sub-field for exact matches
+                                        .field("tags")
+                                        .value(request.getTag())
+                                )
+                        );
+                    }
+
+                    if (request.getFromDate() != null) {
+                        b.filter(f -> f
+                                .range(r -> r
+                                        .date(d -> d
+                                                .field("createdAt")
+                                                // FIX 2a: Start safely at 00:00:00
+                                                .gte(request.getFromDate().atStartOfDay().toString())
+                                        )
+                                )
+                        );
+                    }
+
+                    if (request.getToDate() != null) {
+                        b.filter(f -> f
+                                .range(r -> r
+                                        .date(d -> d
+                                                .field("createdAt")
+                                                // FIX 2b: Push to the absolute end of the day (23:59:59.999)
+                                                .lte(request.getToDate().atTime(LocalTime.MAX).toString())
+                                        )
+                                )
+                        );
+                    }
+                    return b;
+                })
+        );
+    }
+
+    private void applySorting(SearchRequest.Builder builder, QuestionSearchSort sort) {
+        // FIX 1: Prevent NullPointerException
+        if (sort == null) {
+            return;
+        }
+
+        switch (sort) {
+            case NEWEST -> builder.sort(s -> s
+                    .field(f -> f
+                            .field("createdAt")
+                            .order(SortOrder.Desc)
+                    )
+            );
+
+            case OLDEST -> builder.sort(s -> s
+                    .field(f -> f
+                            .field("createdAt")
+                            .order(SortOrder.Asc)
+                    )
+            );
+
+            case RELEVANCE -> {
+                // Elasticsearch defaults to relevance scoring automatically.
+            }
         }
     }
 
