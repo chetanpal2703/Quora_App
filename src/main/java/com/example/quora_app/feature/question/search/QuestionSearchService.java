@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.UUID;
 
@@ -170,7 +171,8 @@ public class QuestionSearchService {
                                         .date(d -> d
                                                 .field("createdAt")
                                                 // FIX 2a: Start safely at 00:00:00
-                                                .gte(request.getFromDate().atStartOfDay().toString())
+                                                .gte(request.getFromDate().atStartOfDay(ZoneId.of("Asia/Kolkata"))
+                                                        .toInstant().toString().toString())
                                         )
                                 )
                         );
@@ -182,7 +184,8 @@ public class QuestionSearchService {
                                         .date(d -> d
                                                 .field("createdAt")
                                                 // FIX 2b: Push to the absolute end of the day (23:59:59.999)
-                                                .lte(request.getToDate().atTime(LocalTime.MAX).toString())
+                                                .lte(request.getToDate().atTime(LocalTime.MAX).atZone(ZoneId.of("Asia/Kolkata"))
+                                                        .toInstant().toString())
                                         )
                                 )
                         );
@@ -219,4 +222,11 @@ public class QuestionSearchService {
         }
     }
 
+
+    public void deleteQuestion(UUID questionId) throws IOException {
+        elasticsearchClient.delete(d -> d
+                .index(INDEX_NAME)
+                .id(questionId.toString())
+        );
+    }
 }

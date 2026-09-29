@@ -7,7 +7,6 @@ import com.example.quora_app.feature.answer.dto.AnswerResponse;
 import com.example.quora_app.feature.question.dto.QuestionCreateRequest;
 import com.example.quora_app.feature.question.dto.QuestionResponse;
 import com.example.quora_app.feature.question.dto.QuestionUpdateRequest;
-import com.example.quora_app.feature.question.enums.QuestionSearchSort;
 import com.example.quora_app.feature.question.search.QuestionSearchService;
 import com.example.quora_app.feature.question.search.dto.QuestionSearchRequest;
 import com.example.quora_app.feature.question.search.dto.QuestionSearchResult;
@@ -18,8 +17,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-
-import java.time.LocalDate;
 import java.util.UUID;
 
 @RestController

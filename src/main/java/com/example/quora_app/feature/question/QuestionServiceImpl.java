@@ -8,6 +8,9 @@ import com.example.quora_app.core.security.CurrentUserService;
 import com.example.quora_app.feature.question.dto.QuestionCreateRequest;
 import com.example.quora_app.feature.question.dto.QuestionResponse;
 import com.example.quora_app.feature.question.dto.QuestionUpdateRequest;
+import com.example.quora_app.feature.question.event.QuestionCreatedEvent;
+import com.example.quora_app.feature.question.event.QuestionDeletedEvent;
+import com.example.quora_app.feature.question.event.QuestionUpdatedEvent;
 import com.example.quora_app.feature.question.mapper.QuestionMapper;
 import com.example.quora_app.feature.question.repository.QuestionRepository;
 import com.example.quora_app.feature.question.specification.QuestionSpecification;
@@ -16,6 +19,7 @@ import com.example.quora_app.feature.tag.TagRepository;
 import com.example.quora_app.feature.user.User;
 import com.example.quora_app.feature.user.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -38,6 +42,7 @@ public class QuestionServiceImpl implements QuestionService {
     private final TagRepository tagRepository;
     private final QuestionMapper questionMapper;
     private final PageMapper pageMapper;
+    private final ApplicationEventPublisher eventPublisher;
 
     private Set<Tag> resolveTags(Set<String> tagNames) {
         if (tagNames == null || tagNames.isEmpty()) {
@@ -59,6 +64,7 @@ public class QuestionServiceImpl implements QuestionService {
     }
 
     @Override
+    @Transactional
     public QuestionResponse createQuestion(QuestionCreateRequest request) {
         User user=userRepository.findById(currentUserService.getCurrentUserId()).orElseThrow(()->new ResourceNotFoundException("User not found with id: "+currentUserService.getCurrentUserId()));
         Set<Tag> tags = resolveTags(request.getTags());
@@ -69,6 +75,7 @@ public class QuestionServiceImpl implements QuestionService {
                 .tags(tags)
                 .build();
         Question savedQuestion= questionRepository.save(question);
+        eventPublisher.publishEvent(new QuestionCreatedEvent(savedQuestion.getId()));
         return questionMapper.toResponse(savedQuestion);
     }
 
@@ -151,6 +158,7 @@ public class QuestionServiceImpl implements QuestionService {
     }
 
     @Override
+    @Transactional
     public QuestionResponse updateQuestion(UUID id, QuestionUpdateRequest request) {
         Question question =questionRepository.findById(id).orElseThrow(()->new ResourceNotFoundException("Question not found with id: "+id));
 //        UUID currentUserId = currentUserService.getCurrentUserId();
@@ -167,11 +175,13 @@ public class QuestionServiceImpl implements QuestionService {
         if (request.getTags() != null) {
             question.setTags(resolveTags(request.getTags()));
         }
-        Question savedQuestion = questionRepository.save(question);
-        return questionMapper.toResponse(savedQuestion);
+        Question updatedQuestion = questionRepository.save(question);
+        eventPublisher.publishEvent(new QuestionUpdatedEvent(updatedQuestion.getId()));
+        return questionMapper.toResponse(updatedQuestion);
     }
 
     @Override
+    @Transactional
     public void deleteQuestion(UUID id) {
         Question question = questionRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Question not found with id: " + id));
 //        UUID currentUserId = currentUserService.getCurrentUserId();
@@ -180,6 +190,7 @@ public class QuestionServiceImpl implements QuestionService {
 //        }
         currentUserService.verifyOwner(question.getUser().getId(), "You are not allowed to delete this question");
         questionRepository.delete(question);
+        eventPublisher.publishEvent(new QuestionDeletedEvent(id));
     }
 
 
