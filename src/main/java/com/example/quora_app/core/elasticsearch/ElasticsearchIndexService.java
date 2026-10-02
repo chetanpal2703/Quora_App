@@ -46,6 +46,8 @@ public class ElasticsearchIndexService {
                                 .properties("username", p -> p.keyword(k -> k))
                                 .properties("tags", p -> p.keyword(k -> k))
                                 .properties("createdAt", p -> p.date(d -> d))
+                                .properties("version", p -> p.long_(l -> l))
+                                .properties("updatedAt", p -> p.date(d -> d))
                         )
                 );
     }

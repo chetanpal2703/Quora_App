@@ -28,4 +28,8 @@ public abstract class BaseEntity {
     @Column(nullable = false)
     private LocalDateTime updatedAt;
 
+    @Version
+    @Column(nullable = false)
+    private Long version;
+
 }

@@ -14,7 +14,7 @@ import org.springframework.transaction.event.TransactionalEventListener;
 
 import java.util.UUID;
 
-@Component
+//@Component
 @RequiredArgsConstructor
 @Slf4j
 public class QuestionSearchEventListener {
@@ -49,7 +49,7 @@ public class QuestionSearchEventListener {
     public void handleQuestionDeleted(QuestionDeletedEvent event) {
         try {
             // No fetching from MySQL needed. Just tell ES to delete the ID.
-            questionSearchService.deleteQuestion(event.questionId());
+//            questionSearchService.deleteQuestion(event.questionId());
         } catch (Exception e) {
             log.error("Failed to delete question from Elasticsearch. Question ID: {}", event.questionId(), e);
         }

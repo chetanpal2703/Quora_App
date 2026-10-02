@@ -1,4 +1,4 @@
-package com.example.quora_app.feature.question.search;
+package com.example.quora_app.feature.question.event;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -13,8 +13,7 @@ import java.util.UUID;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class QuestionSearchDocument {
-
+public class QuestionEventPayload {
     private UUID id;
 
     private String title;

@@ -2,6 +2,8 @@ package com.example.quora_app.feature.question.search;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch._types.SortOrder;
+import co.elastic.clients.elasticsearch._types.VersionType;
+import co.elastic.clients.elasticsearch.core.IndexRequest;
 import co.elastic.clients.elasticsearch.core.SearchRequest;
 import com.example.quora_app.core.common.dto.PageResponse;
 import com.example.quora_app.feature.question.enums.QuestionSearchSort;
@@ -27,14 +29,18 @@ public class QuestionSearchService {
 
     public void indexQuestion(QuestionSearchDocument document) {
         try {
-            elasticsearchClient.index(i -> i
-                    .index(INDEX_NAME)
-                    .id(document.getId().toString())
-                    .document(document)
-            );
-            log.info("Successfully indexed question: {}", document.getId());
+            IndexRequest<QuestionSearchDocument> request =
+                    IndexRequest.of(i -> i
+                            .index(INDEX_NAME)
+                            .id(document.getId().toString())
+                            .document(document)
+                            .version(document.getVersion())
+                            .versionType(VersionType.External)
+                    );
+            elasticsearchClient.index(request);
+            log.info("Successfully indexed question: {} with version {}", document.getId(), document.getVersion());
         } catch (IOException e) {
-            log.error("Failed to index question to Elasticsearch", e);
+            log.error("Failed to index question to Elasticsearch: {}", document.getId(), e);
             throw new RuntimeException("Indexing failed", e);
         }
     }
@@ -223,10 +229,18 @@ public class QuestionSearchService {
     }
 
 
-    public void deleteQuestion(UUID questionId) throws IOException {
-        elasticsearchClient.delete(d -> d
-                .index(INDEX_NAME)
-                .id(questionId.toString())
-        );
+    public void deleteQuestion(UUID questionId, Long version) {
+        try {
+            elasticsearchClient.delete(d -> d
+                    .index(INDEX_NAME)
+                    .id(questionId.toString())
+                    .version(version)
+                    .versionType(VersionType.External)
+            );
+            log.info("Successfully deleted question {} with version {}", questionId, version);
+        } catch (IOException e) {
+            log.error("Failed to delete question from Elasticsearch: {}", questionId, e);
+            throw new RuntimeException("Delete from Elasticsearch failed", e);
+        }
     }
 }

@@ -4,13 +4,17 @@ import com.example.quora_app.core.common.dto.PageResponse;
 import com.example.quora_app.core.common.mapper.PageMapper;
 import com.example.quora_app.core.exception.BadRequestException;
 import com.example.quora_app.core.exception.ResourceNotFoundException;
+import com.example.quora_app.core.outbox.enums.OutboxEventType;
+import com.example.quora_app.core.outbox.service.OutboxEventService;
 import com.example.quora_app.core.security.CurrentUserService;
 import com.example.quora_app.feature.question.dto.QuestionCreateRequest;
 import com.example.quora_app.feature.question.dto.QuestionResponse;
 import com.example.quora_app.feature.question.dto.QuestionUpdateRequest;
-import com.example.quora_app.feature.question.event.QuestionCreatedEvent;
 import com.example.quora_app.feature.question.event.QuestionDeletedEvent;
+import com.example.quora_app.feature.question.event.QuestionDeletedEventPayload;
+import com.example.quora_app.feature.question.event.QuestionEventPayload;
 import com.example.quora_app.feature.question.event.QuestionUpdatedEvent;
+import com.example.quora_app.feature.question.mapper.QuestionEventPayloadMapper;
 import com.example.quora_app.feature.question.mapper.QuestionMapper;
 import com.example.quora_app.feature.question.repository.QuestionRepository;
 import com.example.quora_app.feature.question.specification.QuestionSpecification;
@@ -43,6 +47,8 @@ public class QuestionServiceImpl implements QuestionService {
     private final QuestionMapper questionMapper;
     private final PageMapper pageMapper;
     private final ApplicationEventPublisher eventPublisher;
+    private final OutboxEventService outboxEventService;
+    private final QuestionEventPayloadMapper questionEventPayloadMapper;
 
     private Set<Tag> resolveTags(Set<String> tagNames) {
         if (tagNames == null || tagNames.isEmpty()) {
@@ -66,7 +72,8 @@ public class QuestionServiceImpl implements QuestionService {
     @Override
     @Transactional
     public QuestionResponse createQuestion(QuestionCreateRequest request) {
-        User user=userRepository.findById(currentUserService.getCurrentUserId()).orElseThrow(()->new ResourceNotFoundException("User not found with id: "+currentUserService.getCurrentUserId()));
+        UUID currentUserId = currentUserService.getCurrentUserId();
+        User user=userRepository.findById(currentUserId).orElseThrow(()->new ResourceNotFoundException("User not found with id: "+currentUserId));
         Set<Tag> tags = resolveTags(request.getTags());
         Question question= Question.builder()
                 .title(request.getTitle())
@@ -74,8 +81,16 @@ public class QuestionServiceImpl implements QuestionService {
                 .user(user)
                 .tags(tags)
                 .build();
-        Question savedQuestion= questionRepository.save(question);
-        eventPublisher.publishEvent(new QuestionCreatedEvent(savedQuestion.getId()));
+        Question savedQuestion = questionRepository.saveAndFlush(question);
+//        using when publisher and subscriber
+//        eventPublisher.publishEvent(new QuestionCreatedEvent(savedQuestion.getId()));
+        QuestionEventPayload eventPayload = questionEventPayloadMapper.toPayload(savedQuestion);
+        outboxEventService.saveEvent(
+                OutboxEventType.QUESTION_CREATED,
+                "QUESTION",
+                savedQuestion.getId(),
+                eventPayload
+        );
         return questionMapper.toResponse(savedQuestion);
     }
 
@@ -175,8 +190,11 @@ public class QuestionServiceImpl implements QuestionService {
         if (request.getTags() != null) {
             question.setTags(resolveTags(request.getTags()));
         }
-        Question updatedQuestion = questionRepository.save(question);
-        eventPublisher.publishEvent(new QuestionUpdatedEvent(updatedQuestion.getId()));
+        Question updatedQuestion = questionRepository.saveAndFlush(question);
+
+//        eventPublisher.publishEvent(new QuestionUpdatedEvent(updatedQuestion.getId()));
+        QuestionEventPayload payload = questionEventPayloadMapper.toPayload(question);
+        outboxEventService.saveEvent(OutboxEventType.QUESTION_UPDATED, "QUESTION", question.getId(), payload);
         return questionMapper.toResponse(updatedQuestion);
     }
 
@@ -189,8 +207,15 @@ public class QuestionServiceImpl implements QuestionService {
 //            throw new ForbiddenException("You are not allowed to delete this question");
 //        }
         currentUserService.verifyOwner(question.getUser().getId(), "You are not allowed to delete this question");
+        QuestionDeletedEventPayload payload = new QuestionDeletedEventPayload(question.getId(), question.getVersion());
+        outboxEventService.saveEvent(
+                OutboxEventType.QUESTION_DELETED,
+                "QUESTION",
+                question.getId(),
+                payload
+        );
         questionRepository.delete(question);
-        eventPublisher.publishEvent(new QuestionDeletedEvent(id));
+//        eventPublisher.publishEvent(new QuestionDeletedEvent(id));
     }
 
 

@@ -3433,3 +3433,1590 @@ Dynamic queries without repository-method explosion.
 ```
 
 This same approach should be used for every new technology or annotation added to this project.
+
+## 74. Why Do We Need Events?
+
+Before learning the Outbox Pattern, we first need to understand **events**.
+
+An event represents something that has already happened in our application.
+
+For example:
+
+```text
+QuestionCreated
+QuestionUpdated
+QuestionDeleted
+AnswerCreated
+UserRegistered
+```
+
+An event is usually expressed as:
+
+```text
+Something happened
+```
+
+For example:
+
+```text
+QuestionCreated
+```
+
+means:
+
+```text
+A question was successfully created.
+```
+
+The event does not necessarily tell another component what it must do.
+
+It tells the system:
+
+```text
+This thing happened.
+```
+
+The component receiving the event can decide what action it needs to perform.
+
+---
+
+# 75. Why Do We Need Events?
+
+Suppose our Question Service directly performs every operation after a question is created:
+
+```text
+Create Question
+      |
+      +----> Save to MySQL
+      |
+      +----> Index Elasticsearch
+      |
+      +----> Send Notification
+      |
+      +----> Update Analytics
+      |
+      +----> Send Email
+```
+
+This creates tight coupling.
+
+The Question Service now knows about:
+
+```text
+MySQL
+Elasticsearch
+Notification
+Analytics
+Email
+```
+
+As the application grows, this becomes difficult to maintain.
+
+Instead, we can say:
+
+```text
+Question Service
+      |
+      v
+QuestionCreated Event
+      |
+      +----> Search Service
+      |
+      +----> Notification Service
+      |
+      +----> Analytics Service
+      |
+      +----> Other Subscribers
+```
+
+The producer does not need to know every consumer.
+
+This is one of the important ideas behind event-driven architecture.
+
+---
+
+# 76. Event Publisher
+
+An **event publisher** is the component that publishes an event when something happens.
+
+For example:
+
+```text
+QuestionService
+       |
+       | publishes
+       v
+QuestionCreated
+```
+
+Conceptually:
+
+```java
+eventPublisher.publish(
+    new QuestionCreatedEvent(questionId)
+);
+```
+
+The publisher's responsibility is:
+
+```text
+Create event
+    ↓
+Publish event
+```
+
+It does not necessarily perform the work that subscribers will perform.
+
+---
+
+# 77. Event Subscriber
+
+A **subscriber** is a component interested in a particular event.
+
+For example:
+
+```text
+QuestionCreated
+       |
+       +--------> Search Subscriber
+       |
+       +--------> Notification Subscriber
+       |
+       +--------> Analytics Subscriber
+```
+
+A subscriber says:
+
+```text
+I am interested in QuestionCreated events.
+```
+
+When that event is published, the subscriber receives it and performs its own work.
+
+For example:
+
+```text
+QuestionCreated
+       |
+       v
+QuestionSearchEventListener
+       |
+       v
+Elasticsearch
+```
+
+---
+
+# 78. Publisher and Subscriber
+
+The basic relationship is:
+
+```text
+             EVENT
+               |
+       +-------+-------+
+       |       |       |
+       v       v       v
+   Subscriber Subscriber Subscriber
+       A       B       C
+```
+
+The important idea is:
+
+```text
+Publisher
+   |
+   | publishes event
+   v
+Event
+   |
+   +----> Subscriber A
+   |
+   +----> Subscriber B
+   |
+   +----> Subscriber C
+```
+
+This is different from directly calling every service.
+
+Instead of:
+
+```text
+QuestionService
+   |
+   +----> SearchService
+   |
+   +----> NotificationService
+   |
+   +----> AnalyticsService
+```
+
+we can have:
+
+```text
+QuestionService
+   |
+   v
+QuestionCreated
+   |
+   +----> Search
+   +----> Notification
+   +----> Analytics
+```
+
+This reduces direct coupling.
+
+---
+
+# 79. Synchronous vs Asynchronous Processing
+
+Events can be processed synchronously or asynchronously.
+
+## Synchronous
+
+The caller waits for the operation.
+
+```text
+QuestionService
+      |
+      v
+SearchService
+      |
+      v
+Elasticsearch
+      |
+      v
+Response
+      |
+      v
+QuestionService continues
+```
+
+The caller is blocked while the operation is happening.
+
+---
+
+## Asynchronous
+
+The publisher publishes the event and processing happens separately.
+
+```text
+QuestionService
+      |
+      v
+Publish Event
+      |
+      v
+Return / Continue
+      |
+      |
+      +--------------------+
+                           |
+                           v
+                      Subscriber
+                           |
+                           v
+                    Elasticsearch
+```
+
+The producer and consumer are less tightly coupled in time.
+
+This becomes especially useful when the work is:
+
+```text
+Slow
+Independent
+Retryable
+Not required to finish before responding
+```
+
+---
+
+# 80. In-Process Application Events
+
+Spring can provide an in-process event mechanism.
+
+Conceptually:
+
+```text
+QuestionService
+      |
+      v
+ApplicationEventPublisher
+      |
+      v
+Spring Application Context
+      |
+      v
+@EventListener
+```
+
+For example:
+
+```java
+eventPublisher.publishEvent(
+        new QuestionCreatedEvent(questionId)
+);
+```
+
+and:
+
+```java
+@EventListener
+public void handleQuestionCreated(
+        QuestionCreatedEvent event) {
+
+    // process event
+}
+```
+
+This is useful for understanding the publisher/subscriber model.
+
+However, this is an **in-process** mechanism.
+
+The publisher and subscriber are still inside the same application.
+
+```text
+One Spring Application
++-------------------------------+
+|                               |
+| Publisher ---> Subscriber     |
+|                               |
++-------------------------------+
+```
+
+It is not the same thing as a distributed message broker such as Kafka.
+
+---
+
+# 81. Why Application Events Are Not Enough for Our Production Architecture
+
+Consider:
+
+```text
+QuestionService
+      |
+      v
+publishEvent()
+      |
+      v
+Application Event
+      |
+      v
+Elasticsearch Listener
+```
+
+What happens if the application crashes before the listener completes?
+
+The event is not automatically stored as a durable message in MySQL.
+
+We therefore need to distinguish:
+
+```text
+In-process event
+```
+
+from:
+
+```text
+Durable event/message
+```
+
+For reliable cross-system processing, we eventually need durable messaging.
+
+That leads us to the concept of a **message broker**.
+
+---
+
+# 82. Message Broker
+
+A message broker is infrastructure that receives messages from producers and makes them available to consumers.
+
+The basic architecture is:
+
+```text
+Producer
+    |
+    v
+Message Broker
+    |
+    v
+Consumer
+```
+
+Instead of:
+
+```text
+Service A
+   |
+   v
+Service B
+```
+
+we can have:
+
+```text
+Service A
+   |
+   v
+Message Broker
+   |
+   v
+Service B
+```
+
+The broker becomes the middle layer for message delivery.
+
+---
+
+# 83. Producer and Consumer
+
+The terminology changes slightly when we use a message broker.
+
+### Producer
+
+A producer sends a message.
+
+```text
+Producer
+    |
+    v
+Message Broker
+```
+
+### Consumer
+
+A consumer receives and processes a message.
+
+```text
+Message Broker
+    |
+    v
+Consumer
+```
+
+So:
+
+```text
+Producer
+    |
+    v
+Broker
+    |
+    v
+Consumer
+```
+
+In our future architecture:
+
+```text
+Question Service
+      |
+      | Producer
+      v
+    Kafka
+      |
+      | Consumer
+      v
+Question Event Consumer
+      |
+      v
+Elasticsearch
+```
+
+---
+
+# 84. Kafka
+
+We plan to use **Kafka** later in the project.
+
+Kafka is a distributed event streaming platform.
+
+At a high level:
+
+```text
+Producer
+    |
+    v
+Kafka Topic
+    |
+    v
+Consumer
+```
+
+For example:
+
+```text
+Question Service
+       |
+       v
+Kafka
+       |
+       v
+Question Event Consumer
+       |
+       v
+Elasticsearch
+```
+
+Kafka allows producers and consumers to be separated from each other.
+
+---
+
+# 85. Kafka Topic
+
+A Kafka topic is a named stream/category where records are published.
+
+For example:
+
+```text
+question-events
+```
+
+Our architecture could eventually look like:
+
+```text
+Question Service
+       |
+       | publish
+       v
+question-events
+       |
+       | consume
+       v
+Question Event Consumer
+       |
+       v
+Elasticsearch
+```
+
+Different consumers can consume events independently.
+
+For example:
+
+```text
+question-events
+       |
+       +----> Search Consumer
+       |
+       +----> Notification Consumer
+       |
+       +----> Analytics Consumer
+```
+
+This makes event-driven systems extensible.
+
+---
+
+# 86. Queue vs Pub/Sub Mental Model
+
+Two useful messaging concepts are:
+
+## Queue-style processing
+
+A message is processed by one consumer from a consumer group.
+
+```text
+             Queue
+               |
+        +------+------+
+        |             |
+    Consumer A    Consumer B
+
+One message is processed by one
+consumer in the group.
+```
+
+This is useful for distributing work.
+
+---
+
+## Publish/Subscribe
+
+Multiple independent subscribers can receive the event.
+
+```text
+             Event
+               |
+       +-------+-------+
+       |       |       |
+       v       v       v
+    Search  Email   Analytics
+```
+
+Each subscriber can perform its own work.
+
+Kafka can support different consumption patterns using topics and consumer groups.
+
+The exact delivery behavior depends on how consumers and consumer groups are configured.
+
+---
+
+# 87. Message Durability
+
+A major advantage of a broker such as Kafka is that messages can be stored durably.
+
+Conceptually:
+
+```text
+Producer
+    |
+    v
+Kafka
+    |
+    | message stored
+    v
+Consumer
+```
+
+If the consumer is temporarily unavailable:
+
+```text
+Producer
+    |
+    v
+Kafka
+    |
+    | message remains available
+    |
+    X Consumer temporarily down
+```
+
+When the consumer recovers, it can continue processing according to its consumer offset and configuration.
+
+This is fundamentally different from simply calling another service directly.
+
+---
+
+# 88. Why Do We Still Need the Outbox Pattern?
+
+At this point we have:
+
+```text
+Question Service
+      |
+      v
+Kafka
+      |
+      v
+Consumer
+      |
+      v
+Elasticsearch
+```
+
+But we still have a problem.
+
+How does Question Service reliably publish to Kafka?
+
+Suppose:
+
+```text
+Question saved in MySQL
+        |
+        v
+Kafka publish
+        |
+        X
+Kafka temporarily unavailable
+```
+
+Now:
+
+```text
+MySQL:
+Question exists
+
+Kafka:
+Event missing
+```
+
+We still have the dual-write problem.
+
+Therefore:
+
+```text
+Database
+   +
+Message Broker
+```
+
+has the same fundamental consistency problem.
+
+This leads directly to the Outbox Pattern.
+
+---
+
+# 89. Outbox Pattern
+
+The Outbox Pattern is used when one business operation needs to update:
+
+1. The primary database
+2. Another external system
+
+For example, in our application:
+
+```text
+QuestionService
+      |
+      +----> MySQL
+      |
+      +----> Kafka
+```
+
+The problem is that MySQL and Kafka are two different systems.
+
+We cannot make them part of the same normal database transaction.
+
+---
+
+# 90. What Problem Does Outbox Solve?
+
+Suppose a user creates a question.
+
+We need to:
+
+```text
+1. Save Question in MySQL
+2. Publish QuestionCreated event
+```
+
+A naive implementation could be:
+
+```java
+questionRepository.save(question);
+
+kafkaProducer.publish(questionCreatedEvent);
+```
+
+But this creates a consistency problem.
+
+### Case 1: MySQL succeeds, Kafka fails
+
+```text
+MySQL
+  |
+  | Question saved
+  v
+SUCCESS
+
+Kafka
+  |
+  | Network / broker failure
+  v
+FAILED
+```
+
+The question exists, but its event was never published.
+
+### Case 2: Kafka succeeds, MySQL fails
+
+```text
+MySQL
+  |
+  | Transaction fails
+  v
+ROLLBACK
+
+Kafka
+  |
+  | Event already published
+  v
+SUCCESS
+```
+
+Now consumers may process an event for data that was never committed to MySQL.
+
+---
+
+# 91. Why Can't We Use `@Transactional`?
+
+A common question is:
+
+```java
+@Transactional
+public void createQuestion() {
+
+    questionRepository.save(question);
+
+    kafkaProducer.publish(questionCreatedEvent);
+}
+```
+
+The important point is:
+
+```text
+@Transactional
+       |
+       v
+MySQL transaction
+```
+
+It does not automatically make Kafka part of the same atomic database transaction.
+
+Therefore:
+
+```text
+MySQL transaction
+        X
+Kafka operation
+```
+
+are not automatically one atomic transaction.
+
+---
+
+# 92. The Outbox Idea
+
+Instead of directly publishing the event, we first save the event into an outbox table in the same MySQL transaction.
+
+```text
+                    SAME TRANSACTION
+                         |
+        +----------------+----------------+
+        |                                 |
+        v                                 v
+   Question table                    Outbox table
+        |                                 |
+        +--------------- COMMIT ----------+
+                                          |
+                                          v
+                                  Outbox Processor
+                                          |
+                                          v
+                                        Kafka
+                                          |
+                                          v
+                                      Consumer
+                                          |
+                                          v
+                                  Elasticsearch
+```
+
+Now the important guarantee becomes:
+
+```text
+Question saved
+       AND
+Outbox event saved
+```
+
+or:
+
+```text
+Neither is saved
+```
+
+because both are inside the same MySQL transaction.
+
+---
+
+# 93. Our Current Architecture
+
+Before Kafka, our learning implementation is:
+
+```text
+                    CLIENT
+                       |
+                       v
+               QuestionController
+                       |
+                       v
+                QuestionService
+                       |
+             +---------+---------+
+             |                   |
+             v                   v
+       QuestionRepository   OutboxEventService
+             |                   |
+             v                   v
+          MySQL              MySQL
+             |                   |
+             +---------+---------+
+                       |
+                    COMMIT
+                       |
+                       v
+                OutboxProcessor
+                       |
+                       v
+                Elasticsearch
+```
+
+Later, Kafka will be inserted:
+
+```text
+QuestionService
+       |
+       v
+MySQL + Outbox
+       |
+       v
+Outbox Publisher
+       |
+       v
+Kafka
+       |
+       v
+Question Event Consumer
+       |
+       v
+Elasticsearch
+```
+
+This is an important distinction:
+
+```text
+Current:
+Outbox -> Elasticsearch
+
+Later:
+Outbox -> Kafka -> Consumer -> Elasticsearch
+```
+
+---
+
+# 94. Why Is the Outbox Called "Outbox"?
+
+Think of it like a mailbox.
+
+Our application puts an event into a mailbox:
+
+```text
+Outbox
+
++--------------------------------+
+| Question Created               |
+| Question Updated               |
+| Question Deleted               |
++--------------------------------+
+```
+
+The application does not have to wait for Elasticsearch or Kafka.
+
+Another component processes the events later.
+
+So:
+
+```text
+Application
+     |
+     v
+Outbox
+     |
+     v
+Processor / Publisher
+     |
+     v
+External System
+```
+
+---
+
+# 95. Important Principle: MySQL Is the Source of Truth
+
+Our architecture is:
+
+```text
+              MySQL
+                |
+                | Source of Truth
+                v
+           Application Data
+
+         Elasticsearch
+                |
+                | Search / Read Model
+                v
+          Derived Data
+```
+
+If Elasticsearch goes down:
+
+```text
+MySQL
+  |
+  | still works
+  v
+Application data remains safe
+```
+
+The outbox event remains in MySQL.
+
+When Elasticsearch becomes available again:
+
+```text
+OutboxProcessor
+       |
+       v
+Process pending events
+       |
+       v
+Elasticsearch
+```
+
+---
+
+# 96. Outbox Event Lifecycle
+
+Every outbox event has a lifecycle:
+
+```text
+PENDING
+   |
+   v
+PROCESSING
+   |
+   +-------> PROCESSED
+   |
+   |
+   +-------> PENDING
+              |
+              | retry
+              v
+          PROCESSING
+
+After maximum retries:
+
+PROCESSING
+    |
+    v
+  FAILED
+```
+
+Meaning:
+
+### PENDING
+
+The event exists but has not been processed yet.
+
+### PROCESSING
+
+A processor has claimed the event and is currently working on it.
+
+### PROCESSED
+
+The external operation succeeded.
+
+### FAILED
+
+The event could not be processed after the allowed retries.
+
+---
+
+# 97. Durability
+
+The Outbox Pattern gives us durability for the event.
+
+If the application crashes after:
+
+```text
+Question saved
+Outbox event saved
+```
+
+but before:
+
+```text
+External processing
+```
+
+the event is still present in MySQL.
+
+Therefore:
+
+```text
+Application crashes
+       |
+       v
+Restart
+       |
+       v
+OutboxProcessor
+       |
+       v
+Find PENDING event
+       |
+       v
+Process event
+```
+
+The event was not lost.
+
+---
+
+# 98. Outbox Does NOT Mean Exactly Once
+
+An important interview concept:
+
+Outbox processing normally gives us **at-least-once processing**.
+
+For example:
+
+```text
+Processor
+    |
+    v
+Elasticsearch indexing succeeds
+    |
+    X
+Processor crashes before marking event PROCESSED
+```
+
+After restart:
+
+```text
+Same event processed again
+```
+
+Therefore an event can be delivered more than once.
+
+That is why consumers should be:
+
+```text
+Idempotent
+```
+
+---
+
+# 99. Idempotency in Our Elasticsearch Integration
+
+The Elasticsearch document ID is the Question UUID:
+
+```java
+.id(document.getId().toString())
+```
+
+Therefore processing the same event again targets the same document.
+
+Conceptually:
+
+```text
+QuestionCreated
+     |
+     v
+ES document ID = question UUID
+```
+
+Processing again:
+
+```text
+Same Question UUID
+       |
+       v
+Same ES document
+```
+
+This prevents duplicate Elasticsearch documents for the same question.
+
+---
+
+# 100. Versioning and Event Ordering
+
+Another important problem is event ordering.
+
+Suppose:
+
+```text
+Question version 1
+Question version 2
+```
+
+but events arrive:
+
+```text
+Version 1
+Version 2
+Version 1
+```
+
+If Elasticsearch blindly accepts every update:
+
+```text
+V1
+ ↓
+V2
+ ↓
+old V1
+```
+
+The final search document can contain stale data.
+
+Therefore we use the database version:
+
+```text
+Question.version
+```
+
+and external versioning in Elasticsearch.
+
+The conceptual rule is:
+
+```text
+Incoming version > existing version
+        |
+        v
+       APPLY
+
+Incoming version <= existing version
+        |
+        v
+       IGNORE
+```
+
+This protects the search index from stale events.
+
+---
+
+# 101. Outbox + Kafka + Elasticsearch Mental Model
+
+The future architecture is:
+
+```text
+                         MySQL
+                    Source of Truth
+                          |
+              +-----------+-----------+
+              |                       |
+              v                       v
+          Question                OutboxEvent
+                                      |
+                                      v
+                               Outbox Publisher
+                                      |
+                                      v
+                                    Kafka
+                                      |
+                       +--------------+--------------+
+                       |                             |
+                       v                             v
+              Search Consumer                Other Consumers
+                       |
+                       v
+                Elasticsearch
+                       |
+                       v
+                 Search / Read
+```
+
+The important relationship is:
+
+```text
+MySQL
+  =
+Source of Truth
+
+Outbox
+  =
+Reliable record of work that must happen
+
+Kafka
+  =
+Durable event transport
+
+Consumer
+  =
+Processes the event
+
+Elasticsearch
+  =
+Derived Search/Read Model
+```
+
+---
+
+# 102. Outbox Interview Questions
+
+### Q1. What problem does the Outbox Pattern solve?
+
+It solves the dual-write problem where an application needs to update a database and publish an event or update another system, but those systems cannot participate in the same normal transaction.
+
+### Q2. Why not simply call Kafka after saving to MySQL?
+
+Because Kafka can fail after MySQL succeeds, leaving the event missing.
+
+### Q3. Why does `@Transactional` not automatically solve this?
+
+Because the database transaction and Kafka operation are different resources and are not automatically one atomic transaction.
+
+### Q4. Why is the Outbox table stored in the same database?
+
+Because we want business data and the event to be committed atomically.
+
+```text
+Question + OutboxEvent
+        |
+        v
+   SAME TRANSACTION
+```
+
+### Q5. What happens if the application crashes after committing the transaction?
+
+The outbox event remains in the database and can be processed later.
+
+### Q6. Does Outbox guarantee exactly-once delivery?
+
+No.
+
+The normal design provides at-least-once processing, so consumers should be idempotent.
+
+### Q7. How do we achieve idempotency in our Elasticsearch integration?
+
+We use the Question UUID as the Elasticsearch document ID.
+
+### Q8. What happens if events arrive out of order?
+
+Versioning prevents an older event from overwriting a newer document.
+
+### Q9. What is the difference between a publisher and a subscriber?
+
+A publisher produces/publishes an event.
+
+A subscriber consumes an event and performs work based on it.
+
+### Q10. What is the difference between an application event and a Kafka event?
+
+A Spring application event is an in-process mechanism inside the application.
+
+Kafka is a distributed messaging/event-streaming system that can durably transport events between independent components.
+
+### Q11. What is a producer?
+
+A producer sends records/messages to a messaging system such as Kafka.
+
+### Q12. What is a consumer?
+
+A consumer reads and processes records/messages from the messaging system.
+
+### Q13. What is a Kafka topic?
+
+A topic is a named stream/category to which producers publish records and from which consumers read them.
+
+### Q14. Why do we need a message broker?
+
+It decouples producers and consumers and provides infrastructure for reliable message delivery, storage, and independent processing.
+
+### Q15. Why do we still need Outbox if Kafka is durable?
+
+Kafka durability does not solve the atomicity problem between:
+
+```text
+MySQL
+```
+
+and:
+
+```text
+Kafka
+```
+
+The Outbox Pattern makes the database update and event creation atomic first.
+
+### Q16. Why do we need event status?
+
+To know where an event is in its lifecycle:
+
+```text
+PENDING
+PROCESSING
+PROCESSED
+FAILED
+```
+
+### Q17. Why do we need `retryCount`?
+
+External systems can temporarily fail. Retry allows the event to be processed again instead of being permanently lost.
+
+### Q18. What happens after maximum retries?
+
+The event becomes `FAILED` and can be investigated or recovered through an operational/dead-letter process.
+
+### Q19. Why do we need `processingAt`?
+
+It allows us to detect events that became stuck in `PROCESSING`, for example because a processor crashed.
+
+### Q20. Why do we use `FOR UPDATE SKIP LOCKED`?
+
+It allows multiple processor instances to claim different pending events without waiting on rows already locked by another processor.
+
+### Q21. Is Elasticsearch the source of truth?
+
+No.
+
+```text
+MySQL = Source of Truth
+Elasticsearch = Search/Read Model
+```
+
+### Q22. What is the difference between the current and future architecture?
+
+Current learning architecture:
+
+```text
+MySQL
+  ↓
+Outbox
+  ↓
+OutboxProcessor
+  ↓
+Elasticsearch
+```
+
+Future Kafka architecture:
+
+```text
+MySQL
+  ↓
+Outbox
+  ↓
+Kafka
+  ↓
+Consumer
+  ↓
+Elasticsearch
+```
+
+---
+
+# 103. One-Line Interview Definitions
+
+### Event
+
+```text
+An event is a representation of something that has already happened.
+```
+
+### Publisher
+
+```text
+A publisher is a component that produces and publishes an event.
+```
+
+### Subscriber
+
+```text
+A subscriber is a component interested in an event and responsible for processing it.
+```
+
+### Producer
+
+```text
+A producer sends records or messages to a messaging system.
+```
+
+### Consumer
+
+```text
+A consumer reads and processes records or messages from a messaging system.
+```
+
+### Kafka
+
+```text
+Kafka is a distributed event streaming platform used to publish,
+store, and consume event streams.
+```
+
+### Outbox Pattern
+
+```text
+The Outbox Pattern stores a domain event in an outbox table
+within the same database transaction as the business data.
+A separate processor then publishes or processes that event
+asynchronously, preventing the event from being lost because
+the external system was unavailable.
+```
+
+---
+
+# 104. The Complete Event-Driven Mental Model
+
+Remember the progression:
+
+```text
+Direct Service Call
+       ↓
+Application Event
+       ↓
+Publisher / Subscriber
+       ↓
+Asynchronous Processing
+       ↓
+Message Broker
+       ↓
+Producer / Consumer
+       ↓
+Kafka
+       ↓
+Dual-Write Problem
+       ↓
+Outbox Pattern
+       ↓
+Outbox Publisher
+       ↓
+Kafka
+       ↓
+Consumer
+       ↓
+Elasticsearch
+```
+
+And the complete architecture:
+
+```text
+                         CLIENT
+                           |
+                           v
+                    REST CONTROLLER
+                           |
+                           v
+                       SERVICE
+                           |
+                           v
+                 +---------+---------+
+                 |                   |
+                 v                   v
+             MySQL Data         Outbox Event
+                 |                   |
+                 +---------+---------+
+                           |
+                        COMMIT
+                           |
+                           v
+                    Outbox Publisher
+                           |
+                           v
+                         Kafka
+                           |
+                           v
+                  Question Event Consumer
+                           |
+                           v
+                    Elasticsearch
+                           |
+                           v
+                      SEARCH API
+                           |
+                           v
+                         CLIENT
+```
+
+The most important idea is:
+
+```text
+Business data
+      +
+Event record
+      |
+      | SAME DATABASE TRANSACTION
+      v
+    COMMIT
+      |
+      v
+Reliable asynchronous processing
+      |
+      v
+External systems
+```
+
+That is the foundation for understanding the Outbox Pattern and event-driven architecture in our application.
