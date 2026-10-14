@@ -33,6 +33,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -50,24 +51,65 @@ public class QuestionServiceImpl implements QuestionService {
     private final OutboxEventService outboxEventService;
     private final QuestionEventPayloadMapper questionEventPayloadMapper;
 
+    //causing N+1 problem due to findorcreatetag
+//    private Set<Tag> resolveTags(Set<String> tagNames) {
+//        if (tagNames == null || tagNames.isEmpty()) {
+//            return new HashSet<>();
+//        }
+//        return tagNames.stream()
+//                .map(String::trim)
+//                .filter(name -> !name.isBlank())
+//                .map(String::toLowerCase)
+//                .map(this::findOrCreateTag)
+//                .collect(Collectors.toSet());
+//    }
+
     private Set<Tag> resolveTags(Set<String> tagNames) {
         if (tagNames == null || tagNames.isEmpty()) {
             return new HashSet<>();
         }
-        return tagNames.stream()
-                .map(String::trim)
-                .filter(name -> !name.isBlank())
-                .map(String::toLowerCase)
-                .map(this::findOrCreateTag)
+
+        // 1. Sanitize and lowercase input tag names
+        Set<String> cleanTagNames = tagNames.stream()
+                .filter(name -> name != null && !name.trim().isBlank())
+                .map(name -> name.trim().toLowerCase())
                 .collect(Collectors.toSet());
+
+        if (cleanTagNames.isEmpty()) {
+            return new HashSet<>();
+        }
+
+        // 2. Fetch all existing tags in ONE SELECT query
+        List<Tag> existingTags = tagRepository.findByNameInIgnoreCase(cleanTagNames);
+
+        // 3. Track existing tag names in lowercase
+        Set<String> existingNames = existingTags.stream()
+                .map(tag -> tag.getName().toLowerCase())
+                .collect(Collectors.toSet());
+
+        // 4. Determine missing tags that need creation
+        List<Tag> newTagsToCreate = cleanTagNames.stream()
+                .filter(name -> !existingNames.contains(name))
+                .map(name -> Tag.builder().name(name).build())
+                .toList();
+
+        // 5. Safely combine existing tags and newly saved tags into a NEW Set
+        Set<Tag> finalTags = new HashSet<>(existingTags);
+
+        if (!newTagsToCreate.isEmpty()) {
+            List<Tag> savedNewTags = tagRepository.saveAll(newTagsToCreate);
+            finalTags.addAll(savedNewTags);
+        }
+
+        return finalTags;
     }
 
-    private Tag findOrCreateTag(String name) {
-        return tagRepository.findByNameIgnoreCase(name)
-                .orElseGet(
-                        () -> tagRepository.save(Tag.builder().name(name).build())
-                );
-    }
+//    private Tag findOrCreateTag(String name) {
+//        return tagRepository.findByNameIgnoreCase(name)
+//                .orElseGet(
+//                        () -> tagRepository.save(Tag.builder().name(name).build())
+//                );
+//    }
 
     @Override
     @Transactional
@@ -207,7 +249,7 @@ public class QuestionServiceImpl implements QuestionService {
 //            throw new ForbiddenException("You are not allowed to delete this question");
 //        }
         currentUserService.verifyOwner(question.getUser().getId(), "You are not allowed to delete this question");
-        QuestionDeletedEventPayload payload = new QuestionDeletedEventPayload(question.getId(), question.getVersion());
+        QuestionDeletedEventPayload payload = new QuestionDeletedEventPayload(question.getId(), question.getVersion()+1);
         outboxEventService.saveEvent(
                 OutboxEventType.QUESTION_DELETED,
                 "QUESTION",

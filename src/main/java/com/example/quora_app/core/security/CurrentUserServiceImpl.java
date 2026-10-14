@@ -25,6 +25,12 @@ public class CurrentUserServiceImpl implements CurrentUserService {
     @Override
     public void verifyOwner(UUID ownerId, String message) {
         UUID currentUserId = getCurrentUserId();
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        boolean isAdmin = authentication != null && authentication.getAuthorities().stream()
+                .anyMatch(authority -> "ROLE_ADMIN".equals(authority.getAuthority()));
+        if (isAdmin) {
+            return; // Admins bypass the ownership check completely
+        }
         if (!ownerId.equals(currentUserId)) {
             throw new ForbiddenException(message);
         }

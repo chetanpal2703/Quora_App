@@ -2,8 +2,10 @@ package com.example.quora_app.feature.question;
 
 import com.example.quora_app.core.common.entity.BaseEntity;
 import com.example.quora_app.feature.answer.Answer;
+import com.example.quora_app.feature.comment.Comment;
 import com.example.quora_app.feature.tag.Tag;
 import com.example.quora_app.feature.user.User;
+import com.example.quora_app.feature.vote.entity.QuestionVote;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -30,8 +32,20 @@ public class Question extends BaseEntity {
     @JoinColumn(name = "user_id",nullable = false)
     private User user;
 
-    @OneToMany(mappedBy = "question")
+    @OneToMany(
+            mappedBy = "question",
+            cascade = CascadeType.REMOVE,
+            orphanRemoval = true)
+    @Builder.Default
     private List<Answer> answers=new ArrayList<>();
+
+    @OneToMany(mappedBy = "question", cascade = CascadeType.REMOVE, orphanRemoval = true)
+    @Builder.Default
+    private List<Comment> comments = new ArrayList<>();
+
+    @OneToMany(mappedBy = "question", cascade = CascadeType.REMOVE, orphanRemoval = true)
+    @Builder.Default
+    private List<QuestionVote> votes = new ArrayList<>();
 
     @ManyToMany
     @JoinTable(

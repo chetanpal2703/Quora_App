@@ -50,4 +50,19 @@ public class OutboxTransactionService {
     public int recoverStuckEvents(LocalDateTime threshold) {
         return outboxEventRepository.recoverStuckEvents(OutboxEventStatus.PROCESSING, OutboxEventStatus.PENDING, threshold);
     }
+
+    @Transactional
+    public void markPublished(OutboxEvent event) {
+        OutboxEvent managedEvent = outboxEventRepository.findById(event.getId())
+                .orElseThrow(() -> new IllegalStateException(
+                        "Outbox event not found: " + event.getId()
+                ));
+
+        managedEvent.setStatus(OutboxEventStatus.PUBLISHED);
+        managedEvent.setProcessingAt(null);
+        managedEvent.setProcessedAt(LocalDateTime.now());
+        managedEvent.setLastError(null);
+
+        outboxEventRepository.save(managedEvent);
+    }
 }

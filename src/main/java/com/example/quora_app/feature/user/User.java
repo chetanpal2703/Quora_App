@@ -5,6 +5,8 @@ import com.example.quora_app.feature.answer.Answer;
 import com.example.quora_app.feature.authorization.entity.Role;
 import com.example.quora_app.feature.comment.Comment;
 import com.example.quora_app.feature.question.Question;
+import com.example.quora_app.feature.vote.entity.AnswerVote;
+import com.example.quora_app.feature.vote.entity.QuestionVote;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -43,16 +45,33 @@ public class User extends BaseEntity {
     @Builder.Default
     private Set<Role> roles = new HashSet<>();
 
-    @OneToMany(mappedBy = "user")
+    @OneToMany(
+            mappedBy = "user",
+            cascade = CascadeType.REMOVE,
+            orphanRemoval = true)
     @Builder.Default
     private List<Question> questions=new ArrayList<>();
 
-    @OneToMany(mappedBy = "user")
+    @OneToMany(
+            mappedBy = "user",
+            cascade = CascadeType.REMOVE,
+            orphanRemoval = true)
     @Builder.Default
     private List<Answer> answers=new ArrayList<>();
 
-    @OneToMany(mappedBy = "user")
+    @OneToMany(
+            mappedBy = "user",
+            cascade = CascadeType.REMOVE,
+            orphanRemoval = true)
     @Builder.Default
     private List<Comment> comments=new ArrayList<>();
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.REMOVE, orphanRemoval = true)
+    @Builder.Default
+    private List<QuestionVote> questionVotes = new ArrayList<>();
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.REMOVE, orphanRemoval = true)
+    @Builder.Default
+    private List<AnswerVote> answerVotes = new ArrayList<>();
 
 }
