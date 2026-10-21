@@ -35,15 +35,22 @@ public class OutboxTransactionService {
 
     @Transactional
     public void markFailed(OutboxEvent event, Exception exception) {
-        event.setRetryCount(event.getRetryCount() + 1);
-        event.setLastError(exception.getMessage());
-        event.setProcessingAt(null);
-        if (event.getRetryCount() >= 5) {
-            event.setStatus(OutboxEventStatus.FAILED);
+        OutboxEvent managedEvent = outboxEventRepository.findById(event.getId())
+                .orElseThrow(() -> new IllegalStateException(
+                        "Outbox event not found: " + event.getId()
+                ));
+
+        int retryCount = managedEvent.getRetryCount() + 1;
+
+        managedEvent.setRetryCount(retryCount);
+        managedEvent.setLastError(exception.getMessage());
+        managedEvent.setProcessingAt(null);
+
+        if (retryCount >= 5) {
+            managedEvent.setStatus(OutboxEventStatus.FAILED);
         } else {
-            event.setStatus(OutboxEventStatus.PENDING);
+            managedEvent.setStatus(OutboxEventStatus.PENDING);
         }
-        outboxEventRepository.save(event);
     }
 
     @Transactional
@@ -60,9 +67,9 @@ public class OutboxTransactionService {
 
         managedEvent.setStatus(OutboxEventStatus.PUBLISHED);
         managedEvent.setProcessingAt(null);
-        managedEvent.setProcessedAt(LocalDateTime.now());
+        managedEvent.setProcessedAt(null);
         managedEvent.setLastError(null);
-
-        outboxEventRepository.save(managedEvent);
+//      As we are inside transaction so dirty checking happen and save automatically
+//        outboxEventRepository.save(managedEvent);
     }
 }
