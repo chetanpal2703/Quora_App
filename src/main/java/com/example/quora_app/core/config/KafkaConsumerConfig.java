@@ -1,4 +1,4 @@
-package com.example.quora_app.core.kafka.consumer.config;
+package com.example.quora_app.core.config;
 
 import org.apache.kafka.common.TopicPartition;
 import org.springframework.boot.kafka.autoconfigure.ConcurrentKafkaListenerContainerFactoryConfigurer;
@@ -11,9 +11,9 @@ import org.springframework.kafka.listener.DeadLetterPublishingRecoverer;
 import org.springframework.kafka.listener.DefaultErrorHandler;
 import org.springframework.util.backoff.FixedBackOff;
 
-@Configuration
+//@Configuration
 public class KafkaConsumerConfig {
-    @Bean
+//    @Bean
     public DefaultErrorHandler kafkaErrorHandler(
             KafkaTemplate<String, String> kafkaTemplate
     ) {
@@ -34,7 +34,7 @@ public class KafkaConsumerConfig {
         );
     }
 
-    @Bean
+//    @Bean
     public ConcurrentKafkaListenerContainerFactory<String, String>
     kafkaListenerContainerFactory(
             ConcurrentKafkaListenerContainerFactoryConfigurer configurer,
